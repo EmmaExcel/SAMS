@@ -1,12 +1,13 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "SAMS",
+    "slug": "SAMS",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "owner": "emmaexcel6",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,13 +16,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.emmaexcel6.mobile",
-      "config": {
-        "infoPlist": {
-          "UIBackgroundModes": ["location"],
-          "NSLocationWhenInUseUsageDescription": "This app needs access to your location for attendance tracking.",
-          "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs background location access for attendance tracking.",
-          "NSLocationAlwaysUsageDescription": "This app needs background location access for attendance tracking."
-        }
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location for attendance tracking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs background location access for attendance tracking.",
+        "NSLocationAlwaysUsageDescription": "This app needs background location access for attendance tracking."
       }
     },
     "android": {
@@ -31,7 +32,9 @@
         "ACCESS_BACKGROUND_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -54,6 +57,12 @@
           "isIosBackgroundLocationEnabled": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3e6eb01d-2ae1-4c72-8def-066187bb0bfa"
+      }
+    },
+   
   }
 }

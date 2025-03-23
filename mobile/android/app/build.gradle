@@ -86,7 +86,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.mobile"
+    namespace 'com.emmaexcel6.mobile'
     defaultConfig {
         applicationId 'com.emmaexcel6.mobile'
         minSdkVersion rootProject.ext.minSdkVersion
