@@ -36,7 +36,13 @@ interface AttendanceContextType {
   attendanceStartTime: Date | null;
   attendanceDuration: number; // in minutes
   studentsInAttendance: any[];
-  startAttendance: (mode: AttendanceMode, duration?: number) => void;
+  selectedCourse: any | null;
+  setSelectedCourse: (course: any) => void;
+  startAttendance: (
+    mode: AttendanceMode,
+    course: any,
+    duration?: number
+  ) => void;
   stopAttendance: () => void;
   saveAttendance: () => Promise<string>;
   setAttendanceMode: (mode: AttendanceMode) => void;
@@ -71,6 +77,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const [attendanceSessionId, setAttendanceSessionId] = useState<string | null>(
     null
   );
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -195,7 +202,11 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     attendanceSessionId,
   ]);
 
-  const startAttendance = (mode: AttendanceMode, duration?: number) => {
+  const startAttendance = (
+    mode: AttendanceMode,
+    course: any,
+    duration?: number
+  ) => {
     if (isAttendanceActive) {
       Alert.alert(
         "Attendance already active",
@@ -204,6 +215,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
+    if (!course) {
+      Alert.alert("Error", "Please select a course for attendance");
+      return;
+    }
+
+    setSelectedCourse(course);
     setAttendanceMode(mode);
     setIsAttendanceActive(true);
     setAttendanceStartTime(new Date());
@@ -213,7 +230,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     const sessionDuration = duration || attendanceDuration;
     setAttendanceDuration(sessionDuration);
 
-    // Create a new attendance session in RTDB
+    // Create a new attendance session in RTDB with course info
     if (auth.currentUser) {
       const lecturerId = auth.currentUser.uid;
       const sessionsRef = ref(rtdb, "attendance_sessions");
@@ -226,6 +243,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         duration: sessionDuration,
         active: true,
         students: {},
+        courseId: course.id,
+        courseCode: course.code,
+        courseTitle: course.title,
       };
 
       set(newSessionRef, sessionData)
@@ -288,11 +308,15 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       throw new Error("User not authenticated");
     }
 
+    if (!selectedCourse) {
+      throw new Error("No course selected for attendance");
+    }
+
     try {
       const lecturerId = auth.currentUser.uid;
       const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
 
-      // Create a new attendance record in Firestore
+      // Create a new attendance record in Firestore with course info
       const attendanceData = {
         lecturerId,
         date,
@@ -302,6 +326,11 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         students: studentsInAttendance,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
+        courseId: selectedCourse.id,
+        courseCode: selectedCourse.code,
+        courseTitle: selectedCourse.title,
+        department: selectedCourse.department,
+        level: selectedCourse.level,
       };
 
       const attendanceRef = await addDoc(
@@ -312,6 +341,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       // Reset the attendance state
       setStudentsInAttendance([]);
       setAttendanceSessionId(null);
+      setSelectedCourse(null);
 
       Alert.alert("Success", "Attendance has been saved successfully.");
       return attendanceRef.id;
@@ -494,6 +524,8 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         attendanceStartTime,
         attendanceDuration,
         studentsInAttendance,
+        selectedCourse,
+        setSelectedCourse,
         startAttendance,
         stopAttendance,
         saveAttendance,

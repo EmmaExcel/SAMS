@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import QuizModal from "../component/quizmodal";
@@ -71,17 +72,27 @@ export default function QuizScreen() {
             <View key={quiz.id} style={styles.quizItem}>
               <Text style={styles.quizTitle}>{quiz.question}</Text>
               <Text style={styles.quizPoints}>Points: {quiz.points || 1}</Text>
+
+              {/* Add course information if available */}
+              {quiz.courseCode && (
+                <View style={styles.courseInfo}>
+                  <Text style={styles.courseCode}>{quiz.courseCode}</Text>
+                  <Text style={styles.courseTitle}>
+                    {quiz.courseTitle || "Unknown Course"}
+                  </Text>
+                </View>
+              )}
+
               <Text style={styles.quizTime}>
                 Expires: {new Date(quiz.expiresAt).toLocaleTimeString()}
               </Text>
-              <View style={styles.quizButton}>
-                <Text
-                  style={styles.quizButtonText}
-                  onPress={() => openQuiz(quiz)}
-                >
-                  Answer Quiz
-                </Text>
-              </View>
+
+              <TouchableOpacity
+                style={styles.quizButton}
+                onPress={() => openQuiz(quiz)}
+              >
+                <Text style={styles.quizButtonText}>Answer Quiz</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </ScrollView>
@@ -101,6 +112,14 @@ export default function QuizScreen() {
           onClose={closeQuizModal}
           onSubmit={handlePageQuizSubmit}
           points={currentPageQuiz.points || 1}
+          courseInfo={
+            currentPageQuiz.courseCode
+              ? {
+                  code: currentPageQuiz.courseCode,
+                  title: currentPageQuiz.courseTitle,
+                }
+              : undefined
+          }
         />
       )}
     </SafeAreaView>
@@ -191,5 +210,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6200ee",
     marginBottom: 4,
+  },
+  courseInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    backgroundColor: "#f0f0f0",
+    padding: 5,
+    borderRadius: 4,
+  },
+  courseCode: {
+    fontWeight: "bold",
+    marginRight: 8,
+    color: "#6200ee",
+  },
+  courseTitle: {
+    fontSize: 14,
   },
 });

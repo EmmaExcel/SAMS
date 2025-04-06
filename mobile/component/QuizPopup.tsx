@@ -14,11 +14,20 @@ const QuizPopup: React.FC = () => {
     return null;
   }
 
+  // Extract course information if available
+  const courseInfo = currentPopupQuiz.courseCode
+    ? {
+        code: currentPopupQuiz.courseCode,
+        title: currentPopupQuiz.courseTitle || "Unknown Course",
+      }
+    : undefined;
+
   return (
     <QuizModal
       visible={showQuizPopup}
       question={currentPopupQuiz.question}
       points={currentPopupQuiz.points || 1}
+      courseInfo={courseInfo}
       onClose={closeQuizPopup}
       onSubmit={handleQuizSubmit}
     />

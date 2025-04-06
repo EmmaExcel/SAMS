@@ -17,6 +17,12 @@ interface QuizContextType {
   handleQuizSubmit: (answer: string) => Promise<void>;
   closeQuizPopup: () => void;
   refreshQuizzes: () => Promise<void>;
+  createQuizForAttendance: (
+    question: string,
+    answer: string,
+    points: number,
+    course: any
+  ) => Promise<string>;
 }
 
 const QuizContext = createContext<QuizContextType | undefined>(undefined);
@@ -140,6 +146,35 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
     }, 500);
   };
 
+  const createQuizForAttendance = async (
+    question: string,
+    answer: string,
+    points: number = 1,
+    course: any
+  ): Promise<string> => {
+    try {
+      // Default time limit of 5 minutes for attendance quizzes
+      const timeLimit = 5;
+      const quizId = await QuizService.createQuiz(
+        question,
+        answer,
+        timeLimit,
+        points,
+        course
+      );
+
+      // Get all students in the course
+      // This would need to be implemented based on your data structure
+      // For example, querying users who have this course in their courses array
+
+      // For now, we'll just return the quiz ID
+      return quizId;
+    } catch (error) {
+      console.error("Error creating quiz for attendance:", error);
+      throw error;
+    }
+  };
+
   return (
     <QuizContext.Provider
       value={{
@@ -150,6 +185,7 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
         handleQuizSubmit,
         closeQuizPopup,
         refreshQuizzes,
+        createQuizForAttendance,
       }}
     >
       {children}

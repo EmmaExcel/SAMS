@@ -21,10 +21,17 @@ class QuizService {
    * @param {string} question - The quiz question
    * @param {string} correctAnswer - The correct answer to the quiz
    * @param {number} timeLimit - Time limit in minutes (optional)
-   *  * @param {number} points - Points awarded for correct answer (optional)
+   * @param {number} points - Points awarded for correct answer (optional)
+   * @param {Object} course - The course object for this quiz (optional)
    * @returns {Promise<string>} - The ID of the created quiz
    */
-  static async createQuiz(question, correctAnswer, timeLimit = 5, points = 1) {
+  static async createQuiz(
+    question,
+    correctAnswer,
+    timeLimit = 5,
+    points = 1,
+    course = null
+  ) {
     try {
       if (!auth.currentUser) {
         throw new Error("User not authenticated");
@@ -44,6 +51,15 @@ class QuizService {
         expiresAt: new Date(Date.now() + timeLimit * 60 * 1000).toISOString(),
         points: points, // Add points value to the quiz
       };
+
+      // Add course information if provided
+      if (course) {
+        quizData.courseId = course.id;
+        quizData.courseCode = course.code;
+        quizData.courseTitle = course.title;
+        quizData.department = course.department;
+        quizData.level = course.level;
+      }
 
       await set(newQuizRef, quizData);
       return newQuizRef.key;
@@ -135,7 +151,17 @@ class QuizService {
           sessionsSnapshot.forEach((sessionSnapshot) => {
             const sessionData = sessionSnapshot.val();
 
-            if (sessionData.active && sessionData.mode === "quiz_based") {
+            // Check if this session is for the same course as the quiz (if course info exists)
+            const isSameCourse =
+              !quizData.courseId ||
+              !sessionData.courseId ||
+              quizData.courseId === sessionData.courseId;
+
+            if (
+              sessionData.active &&
+              sessionData.mode === "quiz_based" &&
+              isSameCourse
+            ) {
               // Add student to this attendance session
               const studentRef = ref(
                 rtdb,
@@ -151,7 +177,8 @@ class QuizService {
                   set(studentRef, {
                     name: userData.name || userData.email || "Unknown",
                     email: userData.email || "Unknown",
-                    studentId: userData.studentId || "Unknown",
+                    studentId:
+                      userData.matricNumber || userData.studentId || "Unknown",
                     timestamp: new Date().toISOString(),
                     method: "quiz",
                     quizId: quizId,

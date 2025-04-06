@@ -13,14 +13,18 @@ interface QuizModalProps {
   visible: boolean;
   question: string;
   points?: number;
+  courseInfo?: {
+    code: string;
+    title: string;
+  };
   onClose: () => void;
   onSubmit: (answer: string) => void;
 }
-
 const QuizModal: React.FC<QuizModalProps> = ({
   visible,
   question,
   points = 1,
+  courseInfo,
   onClose,
   onSubmit,
 }) => {
@@ -41,6 +45,13 @@ const QuizModal: React.FC<QuizModalProps> = ({
     >
       <View style={styles.container}>
         <View style={styles.modalView}>
+          {courseInfo && (
+            <View style={styles.courseInfoContainer}>
+              <Text style={styles.courseCode}>{courseInfo.code}</Text>
+              <Text style={styles.courseTitle}>{courseInfo.title}</Text>
+            </View>
+          )}
+
           <Text className="text-lg mb-2">{question}</Text>
           <Text className="text-sm mb-4 text-violet-600">
             Worth {points} {points === 1 ? "point" : "points"}
@@ -58,7 +69,6 @@ const QuizModal: React.FC<QuizModalProps> = ({
             >
               <Text className="text-lg text-white">submit</Text>
             </TouchableOpacity>
-            {/* <Button title="Close" onPress={onClose} /> */}
           </View>
         </View>
       </View>
@@ -93,6 +103,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     width: "100%",
+  },
+  courseInfoContainer: {
+    backgroundColor: "#f0f0f0",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+    width: "100%",
+    alignItems: "center",
+  },
+  courseCode: {
+    fontWeight: "bold",
+    fontSize: 16,
+    color: "#6200ee",
+  },
+  courseTitle: {
+    fontSize: 14,
+    color: "#333",
+    marginTop: 5,
   },
 });
 

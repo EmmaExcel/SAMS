@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
   Switch,
+  ActivityIndicator,
 } from "react-native";
 import { getDistance } from "geolib";
 import { rtdb, auth, db } from "../firebase";
@@ -25,13 +26,18 @@ import {
 } from "firebase/database";
 import { useLocation } from "../context/locationContext";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, where } from "firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 import QuizService from "../services/QuizService";
 import { AttendanceMode, useAttendance } from "../context/attendanceContext";
+import { useQuiz } from "../context/quizContext";
+import { useAuth } from "../context/authContext";
+import CreateQuizModal from "../component/CreateQuizModal";
 export default function Attendance() {
   const { location, radius: locationRadius, setRadius } = useLocation();
   const navigation = useNavigation();
+  const { userProfile } = useAuth();
+  const { createQuizForAttendance } = useQuiz();
   // attendance states
   const {
     isAttendanceActive,
@@ -39,6 +45,8 @@ export default function Attendance() {
     attendanceStartTime,
     attendanceDuration,
     studentsInAttendance,
+    selectedCourse,
+    setSelectedCourse,
     startAttendance,
     stopAttendance,
     saveAttendance,
@@ -64,77 +72,26 @@ export default function Attendance() {
   const [tempMode, setTempMode] = useState<AttendanceMode>(attendanceMode);
   const [tempRadius, setTempRadius] = useState(locationRadius.toString());
 
+  // Add state for courses
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+
   // Function to create and assign a quiz to students in range
-  const handleCreateQuiz = async () => {
-    if (!quizQuestion || !quizAnswer) {
-      Alert.alert(
-        "Error",
-        "Please enter both a question and the correct answer"
-      );
-      return;
-    }
-
-    if (studentsInRadius.length === 0) {
-      Alert.alert(
-        "No Students",
-        "There are no students in range to assign this quiz to."
-      );
-      return;
-    }
-
-    setCreatingQuiz(true);
-
+  const handleCreateQuiz = async (
+    question: string,
+    answer: string,
+    points: number
+  ) => {
     try {
-      // Create the quiz
-      const quizId = await QuizService.createQuiz(
-        quizQuestion,
-        quizAnswer,
-        parseInt(quizTimeLimit) || 5
-      );
-
-      // Get student IDs from the students in radius
-      const usersRef = ref(rtdb, "users");
-      const snapshot = await get(usersRef);
-      const studentIds: string[] = [];
-
-      if (snapshot.exists()) {
-        snapshot.forEach((childSnapshot) => {
-          const userId = childSnapshot.key;
-          const userData = childSnapshot.val();
-
-          if (userData.userType === "student") {
-            studentIds.push(userId!);
-          }
-        });
-      }
-
-      if (studentIds.length === 0) {
-        Alert.alert(
-          "No Students",
-          "There are no students to assign this quiz to."
-        );
-        return;
-      }
-
-      // Assign the quiz to these students
-      await QuizService.assignQuizToStudents(quizId, studentIds);
-
-      // Reset form and close modal
-      setQuizQuestion("");
-      setQuizAnswer("");
-      setQuizTimeLimit("5");
+      await createQuizForAttendance(question, answer, points, selectedCourse);
       setShowQuizModal(false);
-
       Alert.alert(
-        "Success",
-        `Quiz has been sent to ${studentIds.length} students in range.`,
-        [{ text: "OK" }]
+        "Quiz Created",
+        `Attendance quiz has been created for ${selectedCourse?.code}. Students can now mark their attendance by answering the quiz.`
       );
     } catch (error) {
-      console.error("Error creating quiz:", error);
-      Alert.alert("Error", "Failed to create quiz. Please try again.");
-    } finally {
-      setCreatingQuiz(false);
+      console.error("Error creating attendance quiz:", error);
+      Alert.alert("Error", "Failed to create attendance quiz");
     }
   };
 
@@ -352,7 +309,6 @@ export default function Attendance() {
     setRadius(radius); // This function should be imported from locationContext
     setShowSettingsModal(false);
   };
-
   const handleStartAttendance = () => {
     if (isAttendanceActive) {
       Alert.alert(
@@ -362,11 +318,25 @@ export default function Attendance() {
       return;
     }
 
-    startAttendance(attendanceMode, attendanceDuration);
-    Alert.alert(
-      "Attendance Started",
-      `Attendance is now active in ${attendanceMode} mode for ${attendanceDuration} minutes.`
-    );
+    if (!selectedCourse) {
+      Alert.alert(
+        "No Course Selected",
+        "Please select a course for attendance"
+      );
+      return;
+    }
+
+    startAttendance(attendanceMode, selectedCourse, attendanceDuration);
+
+    // If quiz-based mode, prompt to create a quiz immediately
+    if (attendanceMode === AttendanceMode.QUIZ_BASED) {
+      setShowQuizModal(true);
+    } else {
+      Alert.alert(
+        "Attendance Started",
+        `Attendance is now active for ${selectedCourse.code}: ${selectedCourse.title} in ${attendanceMode} mode for ${attendanceDuration} minutes.`
+      );
+    }
   };
 
   const handleStopAttendance = () => {
@@ -423,6 +393,101 @@ export default function Attendance() {
     }
   };
 
+  useEffect(() => {
+    const fetchLecturerCourses = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        setLoadingCourses(true);
+        const coursesQuery = query(
+          collection(db, "courses"),
+          where("lecturerId", "==", auth.currentUser.uid)
+        );
+
+        const coursesSnapshot = await getDocs(coursesQuery);
+        const coursesData = coursesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setCourses(coursesData);
+
+        // If there's only one course, select it automatically
+        if (coursesData.length === 1 && !selectedCourse) {
+          setSelectedCourse(coursesData[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        Alert.alert("Error", "Failed to load your courses");
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    fetchLecturerCourses();
+  }, []);
+
+  const renderCourseSelection = () => {
+    if (loadingCourses) {
+      return <ActivityIndicator size="small" color="#6200ee" />;
+    }
+
+    if (courses.length === 0) {
+      return (
+        <View style={styles.noCourses}>
+          <Text style={styles.noCoursesText}>
+            You don't have any courses. Please add courses in your profile.
+          </Text>
+          <TouchableOpacity
+            style={styles.addCourseButton}
+            onPress={() => navigation.navigate("LecturerProfileSetup" as never)}
+          >
+            <Text style={styles.addCourseButtonText}>Add Courses</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.courseSelector}>
+        <Text style={styles.sectionLabel}>Select Course for Attendance:</Text>
+        <View style={styles.courseTabs}>
+          {courses.map((course) => (
+            <TouchableOpacity
+              key={course.id}
+              style={[
+                styles.courseTab,
+                selectedCourse?.id === course.id && styles.selectedCourseTab,
+              ]}
+              onPress={() => setSelectedCourse(course)}
+            >
+              <Text
+                style={[
+                  styles.courseTabText,
+                  selectedCourse?.id === course.id &&
+                    styles.selectedCourseTabText,
+                ]}
+              >
+                {course.code}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {selectedCourse && (
+          <View style={styles.selectedCourseInfo}>
+            <Text style={styles.selectedCourseTitle}>
+              {selectedCourse.title}
+            </Text>
+            <Text style={styles.selectedCourseDetails}>
+              Level: {selectedCourse.level} | Department:{" "}
+              {selectedCourse.department}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const renderStudentItem = ({ item }: { item: any }) => {
     // Format the last active time
     const lastActiveTime = item.lastActive
@@ -468,6 +533,9 @@ export default function Attendance() {
             <Text style={styles.activeSessionText}>
               Attendance Active - {attendanceMode} Mode
             </Text>
+            <Text style={styles.courseSessionText}>
+              Course: {selectedCourse?.code}: {selectedCourse?.title}
+            </Text>
             <Text style={styles.sessionTimeText}>
               Started: {attendanceStartTime?.toLocaleTimeString()}
             </Text>
@@ -479,6 +547,8 @@ export default function Attendance() {
           Students in attendance: {studentsInAttendance.length}
         </Text>
       </View>
+
+      {!isAttendanceActive && renderCourseSelection()}
 
       <View style={styles.controlsContainer}>
         <View style={styles.buttonRow}>
@@ -568,65 +638,27 @@ export default function Attendance() {
         />
       </View>
 
-      {/* Quiz Creation Modal */}
-      <Modal
+      <CreateQuizModal
         visible={showQuizModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowQuizModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create Quiz</Text>
-            <Text style={styles.modalSubtitle}>
-              This quiz will be sent to {studentsInRadius.length} students in
-              range
-            </Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Enter quiz question"
-              value={quizQuestion}
-              onChangeText={setQuizQuestion}
-              multiline
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Enter correct answer"
-              value={quizAnswer}
-              onChangeText={setQuizAnswer}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Time limit (minutes)"
-              value={quizTimeLimit}
-              onChangeText={setQuizTimeLimit}
-              keyboardType="numeric"
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowQuizModal(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.createButton]}
-                onPress={handleCreateQuiz}
-                disabled={creatingQuiz}
-              >
-                <Text style={styles.buttonText}>
-                  {creatingQuiz ? "Creating..." : "Create Quiz"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        courseInfo={
+          selectedCourse
+            ? {
+                code: selectedCourse.code,
+                title: selectedCourse.title,
+              }
+            : null
+        }
+        onClose={() => {
+          setShowQuizModal(false);
+          // If they cancel quiz creation but attendance is already started,
+          // we should inform them that attendance is still active
+          Alert.alert(
+            "Attendance Active",
+            "Attendance session is active, but no quiz has been created. You can create a quiz later."
+          );
+        }}
+        onSubmit={handleCreateQuiz}
+      />
 
       {/* Attendance Settings Modal */}
       <Modal
@@ -900,5 +932,81 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     marginBottom: 15,
+  },
+  courseSelector: {
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  courseTabs: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 10,
+  },
+  courseTab: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 5,
+  },
+  selectedCourseTab: {
+    backgroundColor: "#6200ee",
+  },
+  courseTabText: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+  selectedCourseTabText: {
+    color: "white",
+  },
+  selectedCourseInfo: {
+    marginTop: 5,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  selectedCourseTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  selectedCourseDetails: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
+  },
+  noCourses: {
+    padding: 20,
+    alignItems: "center",
+  },
+  noCoursesText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  addCourseButton: {
+    backgroundColor: "#6200ee",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  addCourseButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  courseSessionText: {
+    color: "white",
+    fontSize: 14,
+    marginTop: 5,
   },
 });

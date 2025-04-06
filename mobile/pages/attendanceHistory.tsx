@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -42,10 +43,39 @@ export default function AttendanceHistory() {
   const [studentName, setStudentName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [scanning, setScanning] = useState(false);
+  // Add state for course filtering
+  const [courses, setCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
 
   const [modalView, setModalView] = useState<"details" | "addStudent">(
     "details"
   );
+
+  useEffect(() => {
+    const fetchLecturerCourses = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        const coursesQuery = query(
+          collection(db, "courses"),
+          where("lecturerId", "==", auth.currentUser.uid)
+        );
+
+        const coursesSnapshot = await getDocs(coursesQuery);
+        const coursesData = coursesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setCourses(coursesData);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+
+    fetchLecturerCourses();
+  }, []);
 
   useEffect(() => {
     loadAttendanceHistory();
@@ -76,15 +106,48 @@ export default function AttendanceHistory() {
       });
 
       // Sort by date, most recent first
-      records.sort((a: any, b: any) => new Date(b.date) - new Date(a.date));
+      records.sort(
+        (a: any, b: any) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
 
       setAttendanceRecords(records);
+
+      // Apply course filter if selected
+      if (selectedCourseId) {
+        filterRecordsByCourse(selectedCourseId, records);
+      } else {
+        setFilteredRecords(records);
+      }
     } catch (error) {
       console.error("Error loading attendance history:", error);
       Alert.alert("Error", "Failed to load attendance history");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter records by course
+  const filterRecordsByCourse = (
+    courseId: string,
+    records = attendanceRecords
+  ) => {
+    if (!courseId) {
+      setFilteredRecords(records);
+      return;
+    }
+
+    const filtered = records.filter(
+      (record: any) =>
+        record.courseId === courseId || record.courseCode === courseId
+    );
+
+    setFilteredRecords(filtered);
+  };
+
+  const handleCourseSelect = (courseId: any) => {
+    setSelectedCourseId(courseId === selectedCourseId ? null : courseId);
+    filterRecordsByCourse(courseId === selectedCourseId ? null : courseId);
   };
 
   const viewAttendanceDetails = (record: any) => {
@@ -208,6 +271,59 @@ export default function AttendanceHistory() {
     }
   };
 
+  // Add course filter UI
+  const renderCourseFilter = () => {
+    if (courses.length === 0) return null;
+
+    return (
+      <View style={styles.courseFilterContainer}>
+        <Text style={styles.filterLabel}>Filter by Course:</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.courseTabsScroll}
+        >
+          <TouchableOpacity
+            style={[
+              styles.courseTab,
+              !selectedCourseId && styles.selectedCourseTab,
+            ]}
+            onPress={() => handleCourseSelect(null)}
+          >
+            <Text
+              style={[
+                styles.courseTabText,
+                !selectedCourseId && styles.selectedCourseTabText,
+              ]}
+            >
+              All Courses
+            </Text>
+          </TouchableOpacity>
+
+          {courses.map((course) => (
+            <TouchableOpacity
+              key={course.id}
+              style={[
+                styles.courseTab,
+                selectedCourseId === course.id && styles.selectedCourseTab,
+              ]}
+              onPress={() => handleCourseSelect(course.id)}
+            >
+              <Text
+                style={[
+                  styles.courseTabText,
+                  selectedCourseId === course.id &&
+                    styles.selectedCourseTabText,
+                ]}
+              >
+                {course.code}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
   const renderAttendanceItem = ({ item }: { item: any }) => {
     const date = new Date(item.date).toLocaleDateString();
     const studentCount = item.students ? item.students.length : 0;
@@ -217,6 +333,16 @@ export default function AttendanceHistory() {
         style={styles.recordItem}
         onPress={() => viewAttendanceDetails(item)}
       >
+        {/* Add course information */}
+        {item.courseCode && (
+          <View style={styles.courseInfoContainer}>
+            <Text style={styles.courseCode}>{item.courseCode}</Text>
+            <Text style={styles.courseTitle}>
+              {item.courseTitle || "Unknown Course"}
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.recordDate}>{date}</Text>
         <Text style={styles.recordDetails}>
           Mode: {item.mode === "automatic" ? "Automatic" : "Quiz-based"}
@@ -262,6 +388,7 @@ export default function AttendanceHistory() {
       <View style={styles.header}>
         <Text style={styles.headerText}>Attendance History</Text>
       </View>
+      {renderCourseFilter()}
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -270,7 +397,7 @@ export default function AttendanceHistory() {
         </View>
       ) : (
         <FlatList
-          data={attendanceRecords}
+          data={filteredRecords}
           keyExtractor={(item) => item.id}
           renderItem={renderAttendanceItem}
           contentContainerStyle={styles.list}
@@ -278,7 +405,9 @@ export default function AttendanceHistory() {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No attendance records found</Text>
               <Text style={styles.emptySubText}>
-                Records will appear here after you save attendance
+                {selectedCourseId
+                  ? "Try selecting a different course or clear the filter"
+                  : "Records will appear here after you save attendance"}
               </Text>
             </View>
           }
@@ -573,5 +702,60 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: "#ccc",
+  },
+  courseFilterContainer: {
+    padding: 10,
+    backgroundColor: "#f5f5f5",
+    marginBottom: 10,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#666",
+  },
+  courseTabsScroll: {
+    flexDirection: "row",
+    marginBottom: 5,
+  },
+  courseTab: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 5,
+  },
+  selectedCourseTab: {
+    backgroundColor: "#6200ee",
+  },
+  courseTabText: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+  selectedCourseTabText: {
+    color: "white",
+  },
+  recordCourse: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#6200ee",
+    marginBottom: 4,
+  },
+  courseInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 5,
+    backgroundColor: "#f0f0f0",
+    padding: 5,
+    borderRadius: 4,
+  },
+  courseCode: {
+    fontWeight: "bold",
+    marginRight: 8,
+    color: "#6200ee",
+  },
+  courseTitle: {
+    fontSize: 14,
+    color: "#333",
   },
 });
