@@ -48,8 +48,8 @@ const TabNavigator = () => {
             iconName = focused ? "time" : "time-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
-          } else if (route.name === "QuizTab") {
-            iconName = focused ? "help-circle" : "help-circle-outline";
+          } else if (route.name === "Courses") {
+            iconName = focused ? "book" : "book";
           }
 
           return (
@@ -82,9 +82,9 @@ const TabNavigator = () => {
 
       {userType === "student" && (
         <Tab.Screen
-          name="QuizTab"
+          name="Courses"
           component={QuizScreen}
-          options={{ tabBarLabel: "Quiz" }}
+          options={{ tabBarLabel: "Courses" }}
         />
       )}
 

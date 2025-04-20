@@ -21,7 +21,7 @@ const Stack = createNativeStackNavigator();
 
 const LoadingScreen = () => (
   <View className="flex-1 justify-center items-center">
-    <ActivityIndicator size="large" color="#0000ff" />
+    <ActivityIndicator size="large" color="#5b2333" />
   </View>
 );
 

@@ -49,6 +49,42 @@ export default function StudentHomeScreen() {
     return () => unsubscribe();
   }, [user]);
 
+  const handleAttendanceNavigation = () => {
+    if (activeAttendanceSessions.length > 0) {
+      // If there's an active session, navigate to the attendance page
+      navigation.push("Attendance");
+    } else {
+      // If no active session, start a new one
+      navigation.push("Attendance");
+    }
+  };
+
+  {
+    userProfile?.userType === "lecturer" && (
+      <View className="py-4 flex flex-row justify-center items-center">
+        <TouchableOpacity
+          onPress={handleAttendanceNavigation}
+          className="shadow-sm bg-neutral-50 rounded-md py-4 w-11/12 flex-row justify-center items-center gap-x-2"
+        >
+          <Ionicons
+            name={
+              activeAttendanceSessions.length > 0
+                ? "play-circle"
+                : "play-circle-outline"
+            }
+            color={"#5b2333"}
+            size={24}
+          />
+          <Text className="font-semibold text-primary">
+            {activeAttendanceSessions.length > 0
+              ? "Resume Attendance Session"
+              : "Start New Attendance Session"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const getGreeting = () => {
     const hour = new Date().getHours();
 
@@ -76,15 +112,21 @@ export default function StudentHomeScreen() {
   const PRIMARY_COLOR = "#f5f5f5";
   const QuickActions = [
     {
-      icon: <Ionicons name="person" size={24} color={PRIMARY_COLOR} />,
-      title: "Profile",
-      onPress: () => navigation.navigate("Profile"),
-      userType: "student",
+      icon: <Ionicons name="people" size={24} color={PRIMARY_COLOR} />,
+      title: "My Students",
+      onPress: () => navigation.navigate("MyStudents"),
+      userType: "lecturer",
     },
     {
-      icon: <Ionicons name="log-out" size={24} color={PRIMARY_COLOR} />,
-      title: "Logout",
-      onPress: () => logout(),
+      icon: <Ionicons name="map" size={24} color={PRIMARY_COLOR} />,
+      title: "View Attendance Map",
+      onPress: () => navigation.navigate("Map"),
+      userType: "lecturer",
+    },
+    {
+      icon: <Ionicons name="clipboard" size={24} color={PRIMARY_COLOR} />,
+      title: "Attendance History",
+      onPress: () => navigation.navigate("AttendanceHistory"),
       userType: "student",
     },
     {
@@ -99,6 +141,12 @@ export default function StudentHomeScreen() {
       onPress: () => navigation.navigate("Courses"),
       userType: "student",
     },
+    {
+      icon: <Ionicons name="help-outline" size={24} color={PRIMARY_COLOR} />,
+      title: "Quiz",
+      onPress: () => navigation.navigate("Quiz"),
+      userType: "student",
+    },
   ];
 
   return (
@@ -108,19 +156,21 @@ export default function StudentHomeScreen() {
       <LinearGradient
         colors={["#5b2333", "#7d3045"]}
         style={{
-          padding: 30,
+          padding: 40,
           borderBottomRightRadius: 20,
           borderBottomLeftRadius: 20,
         }}
       >
         <View className=" flex flex-row justify-center items-center">
-          <Text className="pt-8 text-white text-xl font-semibold">Welcome</Text>
+          <Text className="pt-6 text-white text-2xl font-semibold">
+            Welcome
+          </Text>
         </View>
       </LinearGradient>
 
-      <View className="mx-2 gap-y-4">
+      <ScrollView className="mx-2 gap-y-4">
         <View className="flex-row items-end w-9/12 ">
-          <View className="items-start gap-y-1 mt-10 w-full px-1">
+          <View className="items-start gap-y-1 mt-4 w-full px-1">
             <Text className="text-neutral-600 text-base">{getGreeting()}</Text>
             <Text className="text-2xl font-bold text-black">
               {userProfile?.name}
@@ -137,60 +187,112 @@ export default function StudentHomeScreen() {
           </View>
         </View>
 
-        <View className="py-4 flex flex-row justify-center items-cente r">
-          <TouchableOpacity className="shadow-sm bg-neutral-50 rounded-md py-3 w-11/12 flex-row justify-center items-center gap-x-2">
-            <Ionicons name="play-circle-outline" color={"#5b2333"} size={24} />
-            <Text className="font-semibold text-primary">
-              Start New Attendance Session
-            </Text>
-          </TouchableOpacity>
-        </View>
-
+        {userProfile?.userType === "lecturer" && (
+          <View className="py-4 flex flex-row justify-center items-cente r">
+            <TouchableOpacity
+              onPress={() => navigation.push("Attendance")}
+              className="shadow-sm bg-neutral-50 rounded-md py-4 w-11/12 flex-row justify-center items-center gap-x-2"
+            >
+              <Ionicons
+                name="play-circle-outline"
+                color={"#5b2333"}
+                size={24}
+              />
+              {activeAttendanceSessions.length > 0 ? (
+                <Text className="font-semibold text-primary">
+                  Resume Attendance Session
+                </Text>
+              ) : (
+                <Text className="font-semibold text-primary">
+                  Start New Attendance Session
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
         {activeAttendanceSessions.length > 0 && (
-          <View className="mb-6">
+          <View className="my-5">
             <Text className="text-lg font-semibold text-[#5b2333] mb-3">
               Active Attendance Sessions
             </Text>
 
-            {activeAttendanceSessions.map((session) => (
-              <View
-                key={session.id}
-                className="bg-gray-100 rounded-xl p-4 mb-4 border-l-4 border-[#5b2333]"
-              >
-                <View className="flex-row justify-between items-center mb-2">
-                  <Text className="text-base font-bold text-[#5b2333]">
-                    {session.courseCode || "Unknown Course"}
-                  </Text>
-                  <Text className="bg-gray-200 text-xs px-2 py-1 rounded">
-                    {session.mode === "automatic" ? "Auto" : "Quiz"}
-                  </Text>
-                </View>
+            <ScrollView className="h-auto max-h-48">
+              {activeAttendanceSessions.map((session) => (
+                <View
+                  key={session.id}
+                  className="bg-white rounded-xl p-4 mb-4 border-l-4 border-[#5b2333] shadow-sm"
+                >
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className="text-base font-bold text-[#5b2333]">
+                      {session.courseCode || "Unknown Course"}
+                    </Text>
+                    <View className="bg-green-100 px-3 py-1 rounded-full">
+                      <Text className="text-xs text-green-800 font-medium">
+                        {session.mode === "automatic" ? "Automatic" : "Quiz"}
+                      </Text>
+                    </View>
+                  </View>
 
-                <Text className="text-sm mb-3">
-                  {session.courseTitle || ""}
-                </Text>
-
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-gray-600">
-                    Started: {new Date(session.startTime).toLocaleTimeString()}
+                  <Text className="text-sm mb-3">
+                    {session.courseTitle || ""}
                   </Text>
-                  <Text className="text-xs text-gray-600">
-                    Duration: {session.duration} mins
-                  </Text>
-                </View>
 
-                {session.mode === "quiz_based" && (
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-row items-center">
+                      <Ionicons name="time-outline" size={16} color="#666" />
+                      <Text className="text-xs text-gray-600 ml-1">
+                        Started:{" "}
+                        {new Date(session.startTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <Ionicons
+                        name="hourglass-outline"
+                        size={16}
+                        color="#666"
+                      />
+                      <Text className="text-xs text-gray-600 ml-1">
+                        Duration: {session.duration} mins
+                      </Text>
+                    </View>
+                  </View>
+
                   <TouchableOpacity
-                    className="bg-[#5b2333] py-2 rounded mt-3"
-                    onPress={() => navigation.navigate("Quiz" as never)}
+                    className="bg-[#5b2333]/90 py-3 rounded-lg mt-3 flex-row justify-center items-center"
+                    onPress={() => {
+                      if (
+                        session.mode === "quiz_based" &&
+                        userProfile?.userType === "student"
+                      ) {
+                        navigation.navigate("Quiz" as never);
+                      } else {
+                        navigation.navigate("Attendance" as never);
+                      }
+                    }}
                   >
-                    <Text className="text-white font-semibold text-center">
-                      Take Attendance Quiz
+                    <Ionicons
+                      name={
+                        session.mode === "quiz_based"
+                          ? "help-circle"
+                          : "clipboard"
+                      }
+                      size={18}
+                      color="white"
+                    />
+                    <Text className="text-white font-semibold text-center ml-2">
+                      {session.mode === "quiz_based" &&
+                      userProfile?.userType === "student"
+                        ? "Take Attendance Quiz"
+                        : "Resume Attendance Session"}
                     </Text>
                   </TouchableOpacity>
-                )}
-              </View>
-            ))}
+                </View>
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -260,7 +362,7 @@ export default function StudentHomeScreen() {
         <Text className="font-semibold text-lg">Quick Actions</Text>
         <View className="flex-row flex-wrap justify-between ">
           {QuickActions.map((action, index) => (
-            <>
+            <React.Fragment key={index}>
               {action.userType === userProfile?.userType && (
                 <TouchableOpacity
                   key={index}
@@ -275,10 +377,10 @@ export default function StudentHomeScreen() {
                   </Text>
                 </TouchableOpacity>
               )}
-            </>
+            </React.Fragment>
           ))}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }

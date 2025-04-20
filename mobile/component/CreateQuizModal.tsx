@@ -4,9 +4,9 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 
 interface CreateQuizModalProps {
@@ -39,7 +39,6 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
     try {
       setLoading(true);
       await onSubmit(question, answer, parseInt(points) || 1);
-      // Reset form
       setQuestion("");
       setAnswer("");
       setPoints("1");
@@ -53,66 +52,106 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
 
   return (
     <Modal
-      transparent={true}
+      transparent
       visible={visible}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <View style={styles.modalView}>
-          <Text style={styles.title}>Create Attendance Quiz</Text>
+      <View className="flex-1 justify-center items-center bg-black/50 px-4">
+        <View className="w-[95%] max-w-[480px] bg-white rounded-xl shadow-lg">
+          {/* Header */}
+          <View className="border-b border-gray-200 p-5">
+            <Text className="text-xl font-bold text-primary text-center">
+              Create Attendance Quiz
+            </Text>
+            <Text className="text-gray-500 text-sm text-center mt-1">
+              Students will answer this quiz to mark attendance
+            </Text>
+          </View>
 
-          {courseInfo && (
-            <View style={styles.courseInfoContainer}>
-              <Text style={styles.courseCode}>{courseInfo.code}</Text>
-              <Text style={styles.courseTitle}>{courseInfo.title}</Text>
+          <ScrollView className="px-5 py-4">
+            {courseInfo && (
+              <View className="bg-gray-50 p-4 rounded-lg mb-5 border shadow-sm border-primary">
+                <Text className="text-base font-bold text-primary">
+                  {courseInfo.code}
+                </Text>
+                <Text className="text-gray-700 text-sm mt-1">
+                  {courseInfo.title}
+                </Text>
+              </View>
+            )}
+
+            {/* Question Field */}
+            <View className="mb-4">
+              <Text className="text-base font-semibold text-gray-800 mb-2">
+                Question
+              </Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800"
+                placeholder="Enter your question"
+                value={question}
+                onChangeText={setQuestion}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+              <Text className="text-xs text-gray-500 mt-1">
+                Make your question clear and specific
+              </Text>
             </View>
-          )}
 
-          <Text style={styles.label}>Question:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your question"
-            value={question}
-            onChangeText={setQuestion}
-            multiline
-          />
+            {/* Answer Field */}
+            <View className="mb-4">
+              <Text className="text-base font-semibold text-gray-800 mb-2">
+                Correct Answer
+              </Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800"
+                placeholder="Enter the correct answer"
+                value={answer}
+                onChangeText={setAnswer}
+              />
+            </View>
 
-          <Text style={styles.label}>Correct Answer:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter the correct answer"
-            value={answer}
-            onChangeText={setAnswer}
-          />
+            {/* Points Field */}
+            <View className="mb-5">
+              <Text className="text-base font-semibold text-gray-800 mb-2">
+                Points
+              </Text>
+              <View className="flex-row items-center">
+                <TextInput
+                  className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800 w-1/4"
+                  placeholder="1"
+                  value={points}
+                  onChangeText={setPoints}
+                  keyboardType="numeric"
+                />
+                <Text className="text-gray-500 ml-3">
+                  point{parseInt(points) !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
 
-          <Text style={styles.label}>Points:</Text>
-          <TextInput
-            style={[styles.input, styles.pointsInput]}
-            placeholder="1"
-            value={points}
-            onChangeText={setPoints}
-            keyboardType="numeric"
-          />
-
-          <View style={styles.buttonContainer}>
+          {/* Action Buttons */}
+          <View className="flex-row p-3">
             <TouchableOpacity
-              style={styles.cancelButton}
+              className="flex-1 py-3 bg-gray-100 rounded-lg items-center justify-center mr-2"
               onPress={onClose}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>Cancel</Text>
+              <Text className="text-gray-700 font-semibold">Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.submitButton}
+              className="flex-1 py-3 bg-primary rounded-lg items-center justify-center ml-2"
               onPress={handleSubmit}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Create Quiz</Text>
+                <Text className="text-white font-semibold">Create Quiz</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -121,92 +160,5 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalView: {
-    width: "90%",
-    maxWidth: 400,
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  courseInfoContainer: {
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-    alignItems: "center",
-  },
-  courseCode: {
-    fontWeight: "bold",
-    fontSize: 16,
-    color: "#6200ee",
-  },
-  courseTitle: {
-    fontSize: 14,
-    color: "#333",
-    marginTop: 5,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: "#f9f9f9",
-  },
-  pointsInput: {
-    width: "30%",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cancelButton: {
-    backgroundColor: "#ccc",
-    padding: 12,
-    borderRadius: 5,
-    flex: 1,
-    marginRight: 10,
-    alignItems: "center",
-  },
-  submitButton: {
-    backgroundColor: "#6200ee",
-    padding: 12,
-    borderRadius: 5,
-    flex: 1,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-});
 
 export default CreateQuizModal;

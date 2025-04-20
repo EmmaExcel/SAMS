@@ -52,6 +52,7 @@ interface AttendanceContextType {
   setAttendanceSessionId: (sessionId: string | null) => void;
   addStudentToRecord: (recordId: string, studentData: any) => Promise<boolean>;
   scanForStudentsToAdd: (recordId: string) => Promise<number>;
+  timeRemaining: number | null;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(
@@ -69,7 +70,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
   const [attendanceStartTime, setAttendanceStartTime] = useState<Date | null>(
     null
   );
-  const [attendanceDuration, setAttendanceDuration] = useState(30); // Default 30 minutes
+  const [attendanceDuration, setAttendanceDuration] = useState(30);
   const [studentsInAttendance, setStudentsInAttendance] = useState<any[]>([]);
   const [attendanceTimer, setAttendanceTimer] = useState<NodeJS.Timeout | null>(
     null
@@ -78,6 +79,163 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     null
   );
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+
+  // Add this useEffect at the beginning of the AttendanceProvider component
+  useEffect(() => {
+    // Check for active sessions when the context loads
+    const checkForActiveSessions = async () => {
+      if (!auth.currentUser) return;
+
+      try {
+        // Instead of using a query with orderByChild
+        const sessionsRef = ref(rtdb, "attendance_sessions");
+
+        // Get all sessions and filter in code
+        const snapshot = await get(sessionsRef);
+        if (!snapshot.exists()) return;
+
+        let activeSession: any = null;
+
+        // Find the most recent active session for this lecturer
+        snapshot.forEach((childSnapshot) => {
+          const sessionData = childSnapshot.val();
+          if (
+            sessionData.active &&
+            sessionData.lecturerId === auth.currentUser?.uid
+          ) {
+            activeSession = {
+              id: childSnapshot.key,
+              ...sessionData,
+            };
+          }
+        });
+
+        if (activeSession) {
+          console.log("Found active session, restoring state:", activeSession);
+
+          // Restore the attendance state
+          setIsAttendanceActive(true);
+          setAttendanceSessionId(activeSession.id);
+          setAttendanceMode(activeSession.mode as AttendanceMode);
+
+          // Get the course details
+          if (activeSession.courseId) {
+            const courseRef = doc(db, "courses", activeSession.courseId);
+            const courseDoc = await getDoc(courseRef);
+            if (courseDoc.exists()) {
+              setSelectedCourse({
+                id: courseDoc.id,
+                ...courseDoc.data(),
+              });
+            }
+          }
+
+          // Calculate remaining time
+          const startTime = activeSession.startTime
+            ? new Date(activeSession.startTime)
+            : new Date(Date.now() - 60000); // Fallback if no start time
+
+          const duration = activeSession.duration || attendanceDuration;
+          setAttendanceDuration(duration);
+          setAttendanceStartTime(startTime);
+
+          // Restore students in attendance
+          if (activeSession.students) {
+            const studentsArray = Object.entries(activeSession.students).map(
+              ([id, data]) => ({
+                id,
+                ...(data as any),
+              })
+            );
+            setStudentsInAttendance(studentsArray);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking for active sessions:", error);
+      }
+    };
+
+    checkForActiveSessions();
+  }, [auth.currentUser?.uid]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (attendanceTimer) {
+        clearTimeout(attendanceTimer);
+      }
+    };
+  }, [attendanceTimer]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isAttendanceActive && attendanceStartTime) {
+      intervalId = setInterval(() => {
+        const now = new Date();
+        const startTime = attendanceStartTime.getTime();
+        const endTime = startTime + attendanceDuration * 60 * 1000;
+        const remaining = Math.max(0, endTime - now.getTime());
+
+        setTimeRemaining(Math.floor(remaining / 1000)); // Convert to seconds
+
+        // If time is up, stop the attendance
+        if (remaining <= 0) {
+          if (intervalId) clearInterval(intervalId);
+
+          // This is where we need to ensure the session is properly marked as inactive
+          if (attendanceSessionId) {
+            const sessionRef = ref(
+              rtdb,
+              `attendance_sessions/${attendanceSessionId}`
+            );
+            get(sessionRef)
+              .then((snapshot) => {
+                if (snapshot.exists()) {
+                  const sessionData = snapshot.val();
+                  // Explicitly set active to false and add an endTime
+                  set(sessionRef, {
+                    ...sessionData,
+                    active: false,
+                    endTime: serverTimestamp(),
+                  })
+                    .then(() => {
+                      // Only after the database is updated, call stopAttendance
+                      stopAttendance();
+                      Alert.alert(
+                        "Attendance Ended",
+                        `The ${attendanceDuration} minute attendance session has ended.`
+                      );
+                    })
+                    .catch((error) => {
+                      console.error("Error updating session status:", error);
+                      // Still call stopAttendance even if there's an error
+                      stopAttendance();
+                    });
+                } else {
+                  // If session doesn't exist for some reason, just stop attendance
+                  stopAttendance();
+                }
+              })
+              .catch((error) => {
+                console.error("Error getting session data:", error);
+                stopAttendance();
+              });
+          } else {
+            // If no session ID, just stop attendance
+            stopAttendance();
+          }
+        }
+      }, 1000);
+    } else {
+      setTimeRemaining(null);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAttendanceActive, attendanceStartTime, attendanceDuration]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -229,7 +387,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     // Use provided duration or default
     const sessionDuration = duration || attendanceDuration;
     setAttendanceDuration(sessionDuration);
-
+    setTimeRemaining(sessionDuration * 60);
     // Create a new attendance session in RTDB with course info
     if (auth.currentUser) {
       const lecturerId = auth.currentUser.uid;
@@ -256,19 +414,6 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
           console.error("Error creating attendance session:", error);
         });
     }
-
-    // Set timer to auto-stop attendance after duration
-    if (sessionDuration > 0) {
-      const timer = setTimeout(() => {
-        stopAttendance();
-        Alert.alert(
-          "Attendance Ended",
-          `The ${sessionDuration} minute attendance session has ended.`
-        );
-      }, sessionDuration * 60 * 1000);
-
-      setAttendanceTimer(timer);
-    }
   };
 
   const stopAttendance = () => {
@@ -277,6 +422,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     setIsAttendanceActive(false);
+    setTimeRemaining(null);
 
     // Clear any active timer
     if (attendanceTimer) {
@@ -290,16 +436,25 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         rtdb,
         `attendance_sessions/${attendanceSessionId}`
       );
-      get(sessionRef).then((snapshot) => {
-        if (snapshot.exists()) {
-          const sessionData = snapshot.val();
-          set(sessionRef, {
-            ...sessionData,
-            active: false,
-            endTime: serverTimestamp(),
-          });
-        }
-      });
+      get(sessionRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            const sessionData = snapshot.val();
+            set(sessionRef, {
+              ...sessionData,
+              active: false,
+              endTime: serverTimestamp(),
+            }).catch((error) => {
+              console.error(
+                "Error updating session status in stopAttendance:",
+                error
+              );
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error getting session data in stopAttendance:", error);
+        });
     }
   };
 
@@ -536,6 +691,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         setAttendanceSessionId,
         addStudentToRecord,
         scanForStudentsToAdd,
+        timeRemaining,
       }}
     >
       {children}

@@ -33,6 +33,8 @@ import { AttendanceMode, useAttendance } from "../context/attendanceContext";
 import { useQuiz } from "../context/quizContext";
 import { useAuth } from "../context/authContext";
 import CreateQuizModal from "../component/CreateQuizModal";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 export default function Attendance() {
   const { location, radius: locationRadius, setRadius } = useLocation();
   const navigation = useNavigation();
@@ -52,6 +54,7 @@ export default function Attendance() {
     saveAttendance,
     setAttendanceMode,
     setAttendanceDuration,
+    timeRemaining,
   } = useAttendance();
   const [studentsInRadius, setStudentsInRadius] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,10 +62,6 @@ export default function Attendance() {
 
   // quiz states
   const [showQuizModal, setShowQuizModal] = useState<any>(false);
-  const [quizQuestion, setQuizQuestion] = useState<any>("");
-  const [quizAnswer, setQuizAnswer] = useState<any>("");
-  const [quizTimeLimit, setQuizTimeLimit] = useState<any>("5");
-  const [creatingQuiz, setCreatingQuiz] = useState<any>(false);
 
   // Attendance settings state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -75,7 +74,54 @@ export default function Attendance() {
   // Add state for courses
   const [courses, setCourses] = useState<any[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+  const [sessionJustStarted, setSessionJustStarted] = useState(false);
 
+  useEffect(() => {
+    // Check if this is a restored session (not one the user just started)
+    if (isAttendanceActive && !sessionJustStarted) {
+      Alert.alert(
+        "Active Session Restored",
+        `You have an ongoing attendance session for ${
+          selectedCourse?.code || "a course"
+        } that was restored.`,
+        [{ text: "OK" }]
+      );
+    }
+  }, []);
+
+  const formatTimeRemaining = () => {
+    if (timeRemaining === null) return "";
+
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+
+    return `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    let autoSaveTimeout: NodeJS.Timeout | null = null;
+
+    // If attendance was active but is no longer active, and we have students, auto-save
+    if (
+      !isAttendanceActive &&
+      studentsInAttendance.length > 0 &&
+      timeRemaining === 0
+    ) {
+      autoSaveTimeout = setTimeout(async () => {
+        try {
+          await saveAttendance();
+        } catch (error) {
+          console.error("Error auto-saving attendance:", error);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+    };
+  }, [isAttendanceActive, timeRemaining]);
   // Function to create and assign a quiz to students in range
   const handleCreateQuiz = async (
     question: string,
@@ -325,6 +371,7 @@ export default function Attendance() {
       );
       return;
     }
+    setSessionJustStarted(true);
 
     startAttendance(attendanceMode, selectedCourse, attendanceDuration);
 
@@ -429,56 +476,58 @@ export default function Attendance() {
 
   const renderCourseSelection = () => {
     if (loadingCourses) {
-      return <ActivityIndicator size="small" color="#6200ee" />;
+      return <ActivityIndicator size="small" color="#5b2333" />;
     }
 
     if (courses.length === 0) {
       return (
-        <View style={styles.noCourses}>
-          <Text style={styles.noCoursesText}>
+        <View className="p-5 items-center">
+          <Text className="text-base text-gray-600 text-center mb-4">
             You don't have any courses. Please add courses in your profile.
           </Text>
           <TouchableOpacity
-            style={styles.addCourseButton}
+            className="bg-[#5b2333] py-2 px-4 rounded"
             onPress={() => navigation.navigate("LecturerProfileSetup" as never)}
           >
-            <Text style={styles.addCourseButtonText}>Add Courses</Text>
+            <Text className="text-white font-bold">Add Courses</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
     return (
-      <View style={styles.courseSelector}>
-        <Text style={styles.sectionLabel}>Select Course for Attendance:</Text>
-        <View style={styles.courseTabs}>
-          {courses.map((course) => (
-            <TouchableOpacity
-              key={course.id}
-              style={[
-                styles.courseTab,
-                selectedCourse?.id === course.id && styles.selectedCourseTab,
-              ]}
-              onPress={() => setSelectedCourse(course)}
-            >
-              <Text
-                style={[
-                  styles.courseTabText,
-                  selectedCourse?.id === course.id &&
-                    styles.selectedCourseTabText,
-                ]}
+      <View className="mb-4 p-3 bg-[#f9f9f9] rounded-lg">
+        <Text className="text-base font-bold mb-2">
+          Select Course for Attendance:
+        </Text>
+
+        <View className="flex-row flex-wrap mb-2">
+          {courses.map((course) => {
+            const isSelected = selectedCourse?.id === course.id;
+            return (
+              <TouchableOpacity
+                key={course.id}
+                className={`px-4 py-2 mr-2 mb-2 rounded ${
+                  isSelected ? "bg-[#5b2333]" : "bg-[#f0f0f0]"
+                }`}
+                onPress={() => setSelectedCourse(course)}
               >
-                {course.code}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  className={`font-bold ${
+                    isSelected ? "text-white" : "text-[#333]"
+                  }`}
+                >
+                  {course.code}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
         {selectedCourse && (
-          <View style={styles.selectedCourseInfo}>
-            <Text style={styles.selectedCourseTitle}>
-              {selectedCourse.title}
-            </Text>
-            <Text style={styles.selectedCourseDetails}>
+          <View className="mt-1 p-3 bg-white rounded border border-[#ddd]">
+            <Text className="text-base font-bold">{selectedCourse.title}</Text>
+            <Text className="text-sm text-gray-600 mt-1">
               Level: {selectedCourse.level} | Department:{" "}
               {selectedCourse.department}
             </Text>
@@ -489,7 +538,6 @@ export default function Attendance() {
   };
 
   const renderStudentItem = ({ item }: { item: any }) => {
-    // Format the last active time
     const lastActiveTime = item.lastActive
       ? `${item.lastActive.toLocaleTimeString([], {
           hour: "2-digit",
@@ -498,101 +546,213 @@ export default function Attendance() {
         })}`
       : "Unknown";
 
-    // Get a display name (with fallbacks)
-    const displayName = item.email;
-
     return (
-      <View style={styles.studentItem}>
-        <Text style={styles.studentName}>{displayName}</Text>
-        <Text style={styles.studentDetails}>ID: {item.id}</Text>
-        {item.studentId && item.studentId !== "Unknown" && (
-          <Text style={styles.studentDetails}>
-            Student ID: {item.studentId}
+      <View className="bg-white p-4 mx-4 rounded-lg mb-3 shadow shadow-black/20 border-l-4 border-primary">
+        <View className="flex-row justify-between items-start">
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-gray-800">
+              {item.name || "Unknown Student"}
+            </Text>
+            {item.studentId && item.studentId !== "Unknown" && (
+              <Text className="text-sm text-gray-600 mt-1">
+                Student ID: {item.studentId}
+              </Text>
+            )}
+          </View>
+
+          <View className="bg-gray-100 px-3 py-1 rounded-full">
+            <Text className="text-xs font-medium text-primary">
+              {item.method === "automatic" ? "Automatic" : "Quiz"}
+            </Text>
+          </View>
+        </View>
+
+        <View className="mt-3 pt-3 border-t border-gray-100">
+          {item.email && (
+            <View className="flex-row items-center mb-1">
+              <Text className="text-sm text-gray-500 w-16 font-semibold">
+                Email:
+              </Text>
+              <Text className="text-sm text-gray-700 flex-1">{item.email}</Text>
+            </View>
+          )}
+
+          <View className="flex-row items-center">
+            <Text className="text-sm text-gray-500 w-16  font-semibold">
+              ID:
+            </Text>
+            <Text className="text-sm text-gray-700 flex-1">{item.id}</Text>
+          </View>
+        </View>
+
+        <View className="mt-3 bg-gray-50 p-2 rounded">
+          <Text className="text-xs text-gray-500 italic">
+            Recorded:{" "}
+            {new Date(item.timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+              second: "2-digit",
+            })}
           </Text>
-        )}
-        {item.email && (
-          <Text style={styles.studentDetails}>Email: {item.email}</Text>
-        )}
-        <Text style={styles.onlineStatus}>
-          Method: {item.method === "automatic" ? "Automatic" : "Quiz"}
-        </Text>
-        <Text style={styles.lastActive}>
-          Recorded: {new Date(item.timestamp).toLocaleTimeString()}
-        </Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Attendance Page</Text>
+    <View className="flex-1 bg-secondary">
+      <LinearGradient
+        colors={["#5b2333", "#7d3045"]}
+        style={{
+          padding: 30,
+          borderBottomRightRadius: 20,
+          borderBottomLeftRadius: 20,
+          marginBottom: 10,
+        }}
+      >
+        <View className=" flex flex-row justify-between items-center pt-8">
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back-outline" size={24} color="white" />
+          </TouchableOpacity>
+          <Text className=" text-white text-2xl font-semibold">Attendance</Text>
 
+          <Text></Text>
+        </View>
+      </LinearGradient>
+
+      <View>
         {isAttendanceActive ? (
-          <View style={styles.activeSessionBanner}>
-            <Text style={styles.activeSessionText}>
-              Attendance Active - {attendanceMode} Mode
-            </Text>
-            <Text style={styles.courseSessionText}>
-              Course: {selectedCourse?.code}: {selectedCourse?.title}
-            </Text>
-            <Text style={styles.sessionTimeText}>
-              Started: {attendanceStartTime?.toLocaleTimeString()}
+          <View className="p-4">
+            {isAttendanceActive ? (
+              <View className="bg-[#4CAF50] p-2 rounded mb-2">
+                <Text className="text-white font-bold text-base capitalize">
+                  Attendance Is Active - {attendanceMode} Mode
+                </Text>
+                <Text className="text-white text-sm mt-1">
+                  Course: {selectedCourse?.code}: {selectedCourse?.title}
+                </Text>
+                <Text className="text-white text-sm mt-1">
+                  Started: {attendanceStartTime?.toLocaleTimeString()}
+                </Text>
+                <Text className="text-white text-sm mt-1 font-bold">
+                  Time Remaining: {formatTimeRemaining()}
+                </Text>
+              </View>
+            ) : (
+              <Text className="text-gray-600">
+                No active attendance session
+              </Text>
+            )}
+            <Text className="text-lg font-bold mt-1">
+              Students in attendance: {studentsInAttendance.length}
             </Text>
           </View>
         ) : (
-          <Text style={styles.statusText}>No active attendance session</Text>
+          <Text className="font-semibold text-neutral-600 my-3 text-lg text-center">
+            No active attendance session
+          </Text>
         )}
-        <Text style={styles.countText}>
+        <Text className="font-bold text-lg mb-2 text-center">
           Students in attendance: {studentsInAttendance.length}
         </Text>
       </View>
 
       {!isAttendanceActive && renderCourseSelection()}
 
-      <View style={styles.controlsContainer}>
-        <View style={styles.buttonRow}>
+      <View className="m-4">
+        {/* First row of buttons */}
+        <View className="flex-row justify-between mb-3">
           <TouchableOpacity
-            style={[
-              styles.controlButton,
-              isAttendanceActive ? styles.disabledButton : styles.startButton,
-            ]}
+            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+              isAttendanceActive ? "bg-gray-200" : "bg-primary"
+            }`}
             onPress={handleStartAttendance}
             disabled={isAttendanceActive}
           >
-            <Text style={styles.buttonText}>Start Attendance</Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="play-circle-outline"
+                size={18}
+                color={isAttendanceActive ? "#9ca3af" : "white"}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                className={`font-semibold ${
+                  isAttendanceActive ? "text-gray-500" : "text-white"
+                }`}
+              >
+                Start Attendance
+              </Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.controlButton,
-              !isAttendanceActive ? styles.disabledButton : styles.stopButton,
-            ]}
+            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+              !isAttendanceActive ? "bg-gray-200" : "bg-[#e53935]"
+            }`}
             onPress={handleStopAttendance}
             disabled={!isAttendanceActive}
           >
-            <Text style={styles.buttonText}>Stop Attendance</Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="stop-circle-outline"
+                size={18}
+                color={!isAttendanceActive ? "#9ca3af" : "white"}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                className={`font-semibold ${
+                  !isAttendanceActive ? "text-gray-500" : "text-white"
+                }`}
+              >
+                Stop Attendance
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.buttonRow}>
+        {/* Second row of buttons */}
+        <View className="flex-row justify-between">
           <TouchableOpacity
-            style={[styles.controlButton, styles.settingsButton]}
+            className="flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 bg-gray-100 border border-primary shadow-sm"
             onPress={() => setShowSettingsModal(true)}
           >
-            <Text style={styles.buttonText}>Settings</Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="settings-outline"
+                size={18}
+                color="#5b2333"
+                style={{ marginRight: 6 }}
+              />
+              <Text className="font-semibold text-primary">Settings</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.controlButton,
-              styles.saveButton,
-              studentsInAttendance.length === 0 ? styles.disabledButton : null,
-            ]}
+            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+              studentsInAttendance.length === 0 ? "bg-gray-200" : "bg-[#43a047]"
+            }`}
             onPress={handleSaveAttendance}
             disabled={studentsInAttendance.length === 0}
           >
-            <Text style={styles.buttonText}>Save Attendance</Text>
+            <View className="flex-row items-center">
+              <Ionicons
+                name="save-outline"
+                size={18}
+                color={studentsInAttendance.length === 0 ? "#9ca3af" : "white"}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                className={`font-semibold ${
+                  studentsInAttendance.length === 0
+                    ? "text-gray-500"
+                    : "text-white"
+                }`}
+              >
+                Save Attendance
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -601,7 +761,7 @@ export default function Attendance() {
         data={studentsInAttendance}
         keyExtractor={(item) => item.id || Math.random().toString()}
         renderItem={renderStudentItem}
-        style={styles.list}
+        className="flex-1"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -610,9 +770,11 @@ export default function Attendance() {
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No students in attendance yet.</Text>
-            <Text style={styles.emptySubText}>
+          <View className="items-center justify-center p-5">
+            <Text className="text-base text-gray-600 text-center mb-2">
+              No students in attendance yet.
+            </Text>
+            <Text className="text-sm text-gray-400 text-center">
               {isAttendanceActive
                 ? "Students will appear here as they are detected or complete quizzes."
                 : "Start an attendance session to begin tracking."}
@@ -620,7 +782,8 @@ export default function Attendance() {
           </View>
         }
       />
-      <View style={styles.buttonContainer}>
+
+      {/* <View style={styles.buttonContainer}>
         <Button
           title="View Attendance Map"
           onPress={() => navigation.navigate("Map" as never)}
@@ -636,7 +799,7 @@ export default function Attendance() {
           onPress={() => navigation.navigate("AttendanceHistory" as never)}
           color="#2196F3"
         />
-      </View>
+      </View> */}
 
       <CreateQuizModal
         visible={showQuizModal}
@@ -650,8 +813,6 @@ export default function Attendance() {
         }
         onClose={() => {
           setShowQuizModal(false);
-          // If they cancel quiz creation but attendance is already started,
-          // we should inform them that attendance is still active
           Alert.alert(
             "Attendance Active",
             "Attendance session is active, but no quiz has been created. You can create a quiz later."
@@ -659,354 +820,131 @@ export default function Attendance() {
         }}
         onSubmit={handleCreateQuiz}
       />
-
-      {/* Attendance Settings Modal */}
+      {/* attendance settings modal */}
       <Modal
         visible={showSettingsModal}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowSettingsModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Attendance Settings</Text>
-
-            <Text style={styles.settingLabel}>Attendance Mode:</Text>
-            <View style={styles.settingRow}>
-              <Text>Automatic</Text>
-              <Switch
-                value={tempMode === AttendanceMode.AUTOMATIC}
-                onValueChange={(value) =>
-                  setTempMode(
-                    value ? AttendanceMode.AUTOMATIC : AttendanceMode.QUIZ_BASED
-                  )
-                }
-                trackColor={{ false: "#767577", true: "#81b0ff" }}
-                thumbColor={
-                  tempMode === AttendanceMode.AUTOMATIC ? "#f5dd4b" : "#f4f3f4"
-                }
-              />
+        <View className="flex-1 justify-center items-center bg-black/60 px-5">
+          <View className="bg-white rounded-xl p-6 w-full max-w-[500px] shadow-lg">
+            {/* Header */}
+            <View className="border-b border-gray-200 pb-4 mb-5">
+              <Text className="text-2xl font-bold text-primary">
+                Attendance Settings
+              </Text>
+              <Text className="text-gray-500 text-sm mt-1">
+                Configure how attendance is tracked and recorded
+              </Text>
             </View>
 
-            <Text style={styles.settingDescription}>
-              {tempMode === AttendanceMode.AUTOMATIC
-                ? "Students in range will be automatically marked present"
-                : "Students must complete a quiz to be marked present"}
-            </Text>
+            {/* Attendance Mode Section */}
+            <View className="mb-6">
+              <Text className="text-base font-bold text-gray-800 mb-3">
+                Attendance Mode
+              </Text>
+              <View className="bg-gray-50 p-4 rounded-lg">
+                <View className="flex-row justify-between items-center">
+                  <View>
+                    <Text className="text-base font-medium">
+                      {tempMode === AttendanceMode.AUTOMATIC
+                        ? "Automatic"
+                        : "Quiz-Based"}
+                    </Text>
+                    <Text className="text-sm text-gray-600 mt-1 max-w-[220px]">
+                      {tempMode === AttendanceMode.AUTOMATIC
+                        ? "Students in range will be automatically marked present"
+                        : "Students must complete a quiz to be marked present"}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={tempMode === AttendanceMode.AUTOMATIC}
+                    onValueChange={(value) =>
+                      setTempMode(
+                        value
+                          ? AttendanceMode.AUTOMATIC
+                          : AttendanceMode.QUIZ_BASED
+                      )
+                    }
+                    trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
+                    thumbColor={
+                      tempMode === AttendanceMode.AUTOMATIC
+                        ? "primary"
+                        : "#f3f4f6"
+                    }
+                    ios_backgroundColor="#d1d5db"
+                    className="ml-2"
+                  />
+                </View>
+              </View>
+            </View>
 
-            <Text style={styles.settingLabel}>Session Duration (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Duration in minutes"
-              value={tempDuration}
-              onChangeText={setTempDuration}
-              keyboardType="numeric"
-            />
+            {/* Session Duration Section */}
+            <View className="mb-6">
+              <Text className="text-base font-bold text-gray-800 mb-2">
+                Session Duration
+              </Text>
+              <View className="relative">
+                <TextInput
+                  className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
+                  placeholder="Duration"
+                  value={tempDuration}
+                  onChangeText={setTempDuration}
+                  keyboardType="numeric"
+                />
+                <Text className="absolute right-4 top-4 text-gray-500">
+                  minutes
+                </Text>
+              </View>
+              <Text className="text-xs text-gray-500 mt-2">
+                The attendance session will automatically end after this
+                duration
+              </Text>
+            </View>
 
-            <Text style={styles.settingLabel}>Detection Radius (meters):</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Radius in meters"
-              value={tempRadius}
-              onChangeText={setTempRadius}
-              keyboardType="numeric"
-            />
-            <Text style={styles.settingDescription}>
-              Students within this distance from you will be detected for
-              automatic attendance
-            </Text>
+            {/* Detection Radius Section */}
+            <View className="mb-6">
+              <Text className="text-base font-bold text-gray-800 mb-2">
+                Detection Radius
+              </Text>
+              <View className="relative">
+                <TextInput
+                  className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
+                  placeholder="Radius"
+                  value={tempRadius}
+                  onChangeText={setTempRadius}
+                  keyboardType="numeric"
+                />
+                <Text className="absolute right-4 top-4 text-gray-500">
+                  meters
+                </Text>
+              </View>
+              <Text className="text-xs text-gray-500 mt-2">
+                Students within this distance from you will be detected for
+                automatic attendance
+              </Text>
+            </View>
 
-            <View style={styles.modalButtons}>
+            {/* Action Buttons */}
+            <View className="flex-row justify-between mt-2">
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                className="bg-gray-200 py-4 px-6 rounded-lg items-center flex-1 mr-3"
                 onPress={() => setShowSettingsModal(false)}
               >
-                <Text style={styles.buttonText}>Cancel</Text>
+                <Text className="text-gray-700 font-semibold">Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+                className="bg-primary py-4 px-6 rounded-lg items-center flex-1"
                 onPress={saveAttendanceSettings}
               >
-                <Text style={styles.buttonText}>Save Settings</Text>
+                <Text className="text-white font-semibold">Save Settings</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  statusText: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 10,
-  },
-  countText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 5,
-  },
-  activeSessionBanner: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  activeSessionText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  sessionTimeText: {
-    color: "white",
-    fontSize: 14,
-    marginTop: 5,
-  },
-  controlsContainer: {
-    marginBottom: 15,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  controlButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 5,
-    alignItems: "center",
-    marginHorizontal: 5,
-  },
-  startButton: {
-    backgroundColor: "#4CAF50",
-  },
-  stopButton: {
-    backgroundColor: "#F44336",
-  },
-  saveButton: {
-    backgroundColor: "#2196F3",
-  },
-  settingsButton: {
-    backgroundColor: "#FF9800",
-  },
-  disabledButton: {
-    backgroundColor: "#CCCCCC",
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  list: {
-    flex: 1,
-  },
-  studentItem: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  studentName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
-  studentDetails: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
-  },
-  onlineStatus: {
-    fontSize: 14,
-    color: "#4CAF50",
-    fontWeight: "bold",
-    marginTop: 4,
-  },
-  lastActive: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: "#999",
-    textAlign: "center",
-  },
-  buttonContainer: {
-    marginBottom: 16,
-    gap: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-    width: "100%",
-    maxWidth: 500,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  modalButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 5,
-    alignItems: "center",
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: "#ccc",
-  },
-  createButton: {
-    backgroundColor: "#6200ee",
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  settingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: "#666",
-    fontStyle: "italic",
-    marginBottom: 15,
-  },
-  courseSelector: {
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  courseTabs: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 10,
-  },
-  courseTab: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 5,
-  },
-  selectedCourseTab: {
-    backgroundColor: "#6200ee",
-  },
-  courseTabText: {
-    fontWeight: "bold",
-    color: "#333",
-  },
-  selectedCourseTabText: {
-    color: "white",
-  },
-  selectedCourseInfo: {
-    marginTop: 5,
-    padding: 10,
-    backgroundColor: "#fff",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  selectedCourseTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  selectedCourseDetails: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 5,
-  },
-  noCourses: {
-    padding: 20,
-    alignItems: "center",
-  },
-  noCoursesText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 15,
-  },
-  addCourseButton: {
-    backgroundColor: "#6200ee",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  addCourseButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  courseSessionText: {
-    color: "white",
-    fontSize: 14,
-    marginTop: 5,
-  },
-});
