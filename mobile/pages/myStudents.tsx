@@ -383,7 +383,7 @@ export default function MyStudents() {
             <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
             <View className="flex-row items-center mt-1">
               <Text className="text-sm text-gray-500 mr-4">
-                ID: {item.studentId}
+                {item.studentId}
               </Text>
               <Text className="text-sm text-gray-500">
                 Level: {item.level || "N/A"}
