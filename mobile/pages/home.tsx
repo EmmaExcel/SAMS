@@ -359,7 +359,7 @@ export default function StudentHomeScreen() {
             </Text>
           </TouchableOpacity>
         </View> */}
-        <Text className="font-semibold text-lg">Quick Actions</Text>
+        <Text className="font-semibold text-lg mt-5">Quick Actions</Text>
         <View className="flex-row flex-wrap justify-between ">
           {QuickActions.map((action, index) => (
             <React.Fragment key={index}>

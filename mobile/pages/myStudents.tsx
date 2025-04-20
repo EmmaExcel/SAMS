@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  StyleSheet,
   Text,
   View,
   FlatList,
@@ -8,6 +7,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Alert,
+  StatusBar,
+  Image,
+  RefreshControl,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/authContext";
@@ -20,16 +23,22 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 
 export default function MyStudents() {
   const { userProfile } = useAuth();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [sortOption, setSortOption] = useState("name"); // name, attendance, id
 
   useEffect(() => {
     const fetchLecturerCourses = async () => {
@@ -60,6 +69,7 @@ export default function MyStudents() {
         setDebugInfo(`Error fetching courses: ${error}`);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     };
 
@@ -204,11 +214,9 @@ export default function MyStudents() {
           }
         }
 
-        // Calculate attendance counts for all found students
         for (let i = 0; i < studentsData.length; i++) {
           const student = studentsData[i];
 
-          // Get attendance count for this student in this course
           const attendanceQuery = query(
             collection(db, "attendance"),
             where("courseCode", "==", selectedCourse.code)
@@ -239,8 +247,8 @@ export default function MyStudents() {
           }
         }
 
-        // Sort students by name
-        studentsData.sort((a, b) => a.name.localeCompare(b.name));
+        // Sort students by selected sort option
+        sortStudents(studentsData, sortOption);
 
         setStudents(studentsData);
         setDebugInfo(`Found ${studentsData.length} students for this course`);
@@ -249,248 +257,492 @@ export default function MyStudents() {
         setDebugInfo(`Error fetching students: ${error}`);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     };
 
     fetchStudentsForCourse();
   }, [selectedCourse]);
 
+  const sortStudents = (studentsData: any[], option: string) => {
+    switch (option) {
+      case "name":
+        return studentsData.sort((a, b) => a.name.localeCompare(b.name));
+      case "attendance":
+        return studentsData.sort(
+          (a, b) => b.attendanceCount - a.attendanceCount
+        );
+      case "id":
+        return studentsData.sort((a, b) =>
+          a.studentId.localeCompare(b.studentId)
+        );
+      default:
+        return studentsData;
+    }
+  };
+
   const handleStudentPress = (student: any) => {
     navigation.navigate("StudentDetails", { student });
   };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    if (selectedCourse) {
+      const fetchStudentsForCourse = async () => {
+        fetchStudentsForCourse();
+      };
+      fetchStudentsForCourse();
+    } else {
+      setRefreshing(false);
+    }
+  };
+
+  const filteredStudents = students.filter((student) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      student.name.toLowerCase().includes(query) ||
+      student.studentId.toLowerCase().includes(query) ||
+      student.email.toLowerCase().includes(query)
+    );
+  });
 
   const renderCourseTab = (course: any) => {
     const isSelected = selectedCourse && selectedCourse.id === course.id;
 
     return (
       <TouchableOpacity
-        style={[styles.courseTab, isSelected && styles.selectedCourseTab]}
+        className={`px-3 py-3 mx-1.5 rounded-xl ${
+          isSelected ? "bg-[#5b2333]/80" : "bg-white border border-gray-200"
+        }`}
+        style={{
+          shadowColor: isSelected ? "#5b2333" : "#000",
+          shadowOffset: { width: 0, height: isSelected ? 4 : 2 },
+          shadowOpacity: isSelected ? 0.3 : 0.1,
+          shadowRadius: isSelected ? 6 : 3,
+          elevation: isSelected ? 8 : 2,
+        }}
         onPress={() => setSelectedCourse(course)}
       >
         <Text
-          style={[
-            styles.courseTabText,
-            isSelected && styles.selectedCourseTabText,
-          ]}
+          className={`font-bold ${isSelected ? "text-white" : "text-gray-700"}`}
         >
           {course.code}
         </Text>
+        {isSelected && (
+          <View className="absolute -bottom-1.5 left-0 right-0 flex items-center">
+            <View className="h-1 w-10 bg-white rounded-full"></View>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
-  const renderStudentItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.studentItem}
-      onPress={() => handleStudentPress(item)}
-    >
-      <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{item.name}</Text>
-        <Text style={styles.studentId}>{item.studentId}</Text>
-      </View>
-      <View style={styles.attendanceInfo}>
-        <Text style={styles.attendanceCount}>{item.attendanceCount}</Text>
-        <Text style={styles.attendanceLabel}>classes</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderStudentItem = ({ item, index }: { item: any; index: number }) => {
+    const colors = ["#5b2333", "#6b3a4c", "#7d4e65", "#8f637e", "#a17897"];
+    const colorIndex = item.name.charCodeAt(0) % colors.length;
+    const avatarColor = colors[colorIndex];
 
-  if (loading && !selectedCourse) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
-      </View>
+    const initials = item.name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+
+    // Calculate attendance percentage
+    const totalClasses = 12;
+    const attendancePercentage = Math.round(
+      (item.attendanceCount / totalClasses) * 100
     );
-  }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.title}>My Students</Text>
-        </TouchableOpacity>
-      </View>
-
-      {courses.length === 0 ? (
-        <View style={styles.emptyCourses}>
-          <Text style={styles.emptyText}>You don't have any courses yet.</Text>
-          <TouchableOpacity
-            style={styles.addCourseButton}
-            onPress={() => navigation.navigate("LecturerProfileSetup" as never)}
+    return (
+      <TouchableOpacity
+        className={`mb-3 mx-4 rounded-xl bg-white overflow-hidden ${
+          index === 0 ? "mt-2" : ""
+        }`}
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 2,
+        }}
+        onPress={() => handleStudentPress(item)}
+      >
+        <View className="flex-row items-center p-4">
+          {/* Avatar */}
+          <View
+            className="h-12 w-12 rounded-full items-center justify-center mr-4"
+            style={{ backgroundColor: avatarColor }}
           >
-            <Text style={styles.addCourseButtonText}>Add Courses</Text>
+            <Text className="text-white font-bold text-lg">{initials}</Text>
+          </View>
+
+          {/* Student Info */}
+          <View className="flex-1">
+            <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
+            <View className="flex-row items-center mt-1">
+              <Text className="text-sm text-gray-500 mr-4">
+                ID: {item.studentId}
+              </Text>
+              <Text className="text-sm text-gray-500">
+                Level: {item.level || "N/A"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Attendance Stats */}
+          <View className="items-center">
+            <View
+              className="h-20 w-20 rounded-full border-4 items-center justify-center"
+              style={{
+                borderColor:
+                  attendancePercentage > 75
+                    ? "#4CAF50"
+                    : attendancePercentage > 50
+                    ? "#FFC107"
+                    : "#F44336",
+              }}
+            >
+              <Text className="text-xl font-bold">{item.attendanceCount}</Text>
+              <Text className="text-xs text-gray-500">classes</Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="flex-row justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <Text className="text-xs text-gray-500">
+            {item.department || "Department: N/A"}
+          </Text>
+          <TouchableOpacity
+            className="flex-row items-center"
+            onPress={() => handleStudentPress(item)}
+          >
+            <Text className="text-xs font-medium text-[#5b2333] mr-1">
+              View Details
+            </Text>
+            <Ionicons name="chevron-forward" size={12} color="#5b2333" />
           </TouchableOpacity>
         </View>
-      ) : (
-        <>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderHeader = () => (
+    <View>
+      <LinearGradient
+        colors={["#5b2333", "#7d3045"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="pt-12 pb-4 px-4"
+        style={{
+          padding: 10,
+          paddingTop: 50,
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+        }}
+      >
+        <View className="flex-row items-center justify-between mb-4">
+          <TouchableOpacity
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="white" />
+          </TouchableOpacity>
+
+          <Text className="text-white text-xl font-bold">My Students</Text>
+
+          <TouchableOpacity
+            className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
+            onPress={() => setFilterVisible(!filterVisible)}
+          >
+            <Ionicons name="options-outline" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2 mb-2">
+          <Ionicons name="search-outline" size={20} color="white" />
+          <TextInput
+            className="flex-1 ml-2 text-white"
+            placeholder="Search students..."
+            placeholderTextColor="rgba(255,255,255,0.7)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={20} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {filterVisible && (
+          <View className="bg-white/10 rounded-xl p-3 mb-3">
+            <Text className="text-white text-sm mb-2">Sort by:</Text>
+            <View className="flex-row">
+              <TouchableOpacity
+                className={`px-3 py-1.5 rounded-full mr-2 ${
+                  sortOption === "name" ? "bg-white" : "bg-white/20"
+                }`}
+                onPress={() => {
+                  setSortOption("name");
+                  setStudents([...sortStudents(students, "name")]);
+                }}
+              >
+                <Text
+                  className={
+                    sortOption === "name"
+                      ? "text-[#5b2333] font-medium"
+                      : "text-white"
+                  }
+                >
+                  Name
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`px-3 py-1.5 rounded-full mr-2 ${
+                  sortOption === "attendance" ? "bg-white" : "bg-white/20"
+                }`}
+                onPress={() => {
+                  setSortOption("attendance");
+                  setStudents([...sortStudents(students, "attendance")]);
+                }}
+              >
+                <Text
+                  className={
+                    sortOption === "attendance"
+                      ? "text-[#5b2333] font-medium"
+                      : "text-white"
+                  }
+                >
+                  Attendance
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`px-3 py-1.5 rounded-full ${
+                  sortOption === "id" ? "bg-white" : "bg-white/20"
+                }`}
+                onPress={() => {
+                  setSortOption("id");
+                  setStudents([...sortStudents(students, "id")]);
+                }}
+              >
+                <Text
+                  className={
+                    sortOption === "id"
+                      ? "text-[#5b2333] font-medium"
+                      : "text-white"
+                  }
+                >
+                  ID
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </LinearGradient>
+
+      {/* Course Tabs */}
+      {courses.length > 0 && (
+        <View className="bg-gray-50 py-3">
           <FlatList
             horizontal
             data={courses}
             renderItem={({ item }) => renderCourseTab(item)}
             keyExtractor={(item) => item.id}
-            style={styles.courseTabs}
             showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 12 }}
           />
-
-          {selectedCourse && (
-            <View style={styles.courseInfoContainer}>
-              <Text style={styles.courseTitle}>{selectedCourse.title}</Text>
-              <Text style={styles.courseDetails}>
-                Level: {selectedCourse.level}
-              </Text>
-            </View>
-          )}
-
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#6200ee"
-              style={styles.loadingStudents}
-            />
-          ) : students.length === 0 ? (
-            <View style={styles.emptyStudents}>
-              <Text style={styles.emptyText}>
-                No students are registered for this course yet.
-              </Text>
-              {__DEV__ && <Text style={styles.debugText}>{debugInfo}</Text>}
-            </View>
-          ) : (
-            <FlatList
-              data={students}
-              renderItem={renderStudentItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.studentsList}
-            />
-          )}
-        </>
+        </View>
       )}
-    </SafeAreaView>
+
+      {/* Selected Course Info */}
+      {selectedCourse && (
+        <View className="px-4 py-3 bg-white border-b border-gray-200">
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className="text-lg font-bold text-gray-800">
+                {selectedCourse.title}
+              </Text>
+              <Text className="text-sm text-gray-600">
+                Level: {selectedCourse.level} •{" "}
+                {selectedCourse.department || "Department N/A"}
+              </Text>
+            </View>
+
+            {/* <View className="bg-[#5b2333]/10 px-3 py-1 rounded-lg">
+              <Text className="text-[#5b2333] font-medium">
+                {filteredStudents.length} Students
+              </Text>
+            </View> */}
+          </View>
+        </View>
+      )}
+
+      {/* Stats Card */}
+      {selectedCourse && filteredStudents.length > 0 && (
+        <View className="mx-4 my-3 bg-white rounded-xl p-4 shadow-sm">
+          <Text className="text-gray-800 font-bold mb-3">
+            Attendance Overview
+          </Text>
+
+          <View className="flex-row justify-between mb-2">
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-[#5b2333]">
+                {filteredStudents.length}
+              </Text>
+              <Text className="text-xs text-gray-500">Total Students</Text>
+            </View>
+
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-[#4CAF50]">
+                {Math.round(
+                  filteredStudents.reduce(
+                    (sum, student) => sum + student.attendanceCount,
+                    0
+                  ) / filteredStudents.length
+                )}
+              </Text>
+              <Text className="text-xs text-gray-500">Avg. Attendance</Text>
+            </View>
+
+            <View className="items-center">
+              <Text className="text-2xl font-bold text-[#FFC107]">
+                {filteredStudents.reduce(
+                  (max, student) => Math.max(max, student.attendanceCount),
+                  0
+                )}
+              </Text>
+              <Text className="text-xs text-gray-500">Max Classes</Text>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderEmptyState = () => (
+    <View className="flex-1 justify-center items-center p-8">
+      <View className="bg-white p-8 rounded-2xl shadow-md items-center max-w-[350px]">
+        <Ionicons
+          name="people-outline"
+          size={64}
+          color="#5b2333"
+          style={{ opacity: 0.5 }}
+        />
+
+        <Text className="text-xl font-bold text-gray-800 text-center mt-4 mb-2">
+          {selectedCourse ? "No Students Found" : "No Courses Available"}
+        </Text>
+
+        <Text className="text-gray-500 text-center mb-6">
+          {selectedCourse
+            ? "There are no students with the name registered for this course yet."
+            : "You don't have any courses set up. Add courses to manage your students."}
+        </Text>
+
+        {/* <TouchableOpacity
+          className="bg-[#5b2333] px-6 py-3 rounded-xl w-full items-center"
+          onPress={() =>
+            navigation.navigate(
+              selectedCourse
+                ? ("Dashboard" as never)
+                : ("LecturerProfileSetup" as never)
+            )
+          }
+        >
+          <Text className="text-white font-semibold">
+            {selectedCourse ? "Go to Dashboard" : "Add Courses"}
+          </Text>
+        </TouchableOpacity> */}
+      </View>
+
+      {__DEV__ && debugInfo && (
+        <Text className="text-xs text-red-400 mt-6 p-3 bg-red-50 rounded-lg">
+          {debugInfo}
+        </Text>
+      )}
+    </View>
+  );
+
+  const renderLoadingState = () => (
+    <View className="flex-1 justify-center items-center">
+      <View className="bg-white p-8 rounded-2xl shadow-md items-center">
+        <ActivityIndicator size="large" color="#5b2333" />
+        <Text className="text-gray-600 mt-4 font-medium">
+          {selectedCourse
+            ? `Loading students for ${selectedCourse.code}...`
+            : "Loading your courses..."}
+        </Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <View
+      className="flex-1 bg-gray-50"
+      style={{ paddingTop: StatusBar.currentHeight }}
+    >
+      <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
+
+      {loading && !selectedCourse ? (
+        renderLoadingState()
+      ) : (
+        <FlatList
+          data={filteredStudents}
+          renderItem={renderStudentItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={!loading ? renderEmptyState : null}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#5b2333"]}
+              tintColor="#5b2333"
+            />
+          }
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 20,
+          }}
+          ListFooterComponent={
+            loading && selectedCourse ? (
+              <ActivityIndicator
+                size="small"
+                color="#5b2333"
+                className="py-4"
+              />
+            ) : filteredStudents.length > 0 ? (
+              <View className="py-4 items-center">
+                <Text className="text-gray-400 text-xs">
+                  {filteredStudents.length} students in total
+                </Text>
+              </View>
+            ) : null
+          }
+        />
+      )}
+
+      {/* Quick Action Button */}
+      {/* {selectedCourse && (
+        <TouchableOpacity
+          className="absolute bottom-32 right-6 w-14 h-14 rounded-full bg-[#5b2333] items-center justify-center shadow-lg"
+          style={{
+            shadowColor: "#5b2333",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 8,
+          }}
+          onPress={() => navigation.navigate("Attendance" as never)}
+        >
+          <Ionicons name="checkmark-circle-outline" size={28} color="white" />
+        </TouchableOpacity>
+      )} */}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  emptyCourses: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  addCourseButton: {
-    backgroundColor: "#6200ee",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  addCourseButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  courseTabs: {
-    maxHeight: 50,
-    backgroundColor: "#f5f5f5",
-  },
-  courseTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
-  selectedCourseTab: {
-    backgroundColor: "#6200ee",
-  },
-  courseTabText: {
-    fontWeight: "bold",
-    color: "#333",
-  },
-  selectedCourseTabText: {
-    color: "white",
-  },
-  courseInfoContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  courseTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  courseDetails: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  loadingStudents: {
-    marginTop: 20,
-  },
-  emptyStudents: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  studentsList: {
-    padding: 16,
-  },
-  studentItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  studentInfo: {
-    flex: 1,
-  },
-  studentName: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  studentId: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  attendanceInfo: {
-    alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-    padding: 8,
-    minWidth: 60,
-  },
-  attendanceCount: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#6200ee",
-  },
-  attendanceLabel: {
-    fontSize: 12,
-    color: "#666",
-  },
-});
