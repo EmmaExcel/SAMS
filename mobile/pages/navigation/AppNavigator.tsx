@@ -15,6 +15,7 @@ import StudentProfileSetup from "../studentProfileSetup";
 import MyStudents from "../myStudents";
 import StudentDetails from "../studentDetails";
 import { useNavigation } from "@react-navigation/native";
+import TabNavigator from "../../component/TabNavigation";
 
 const Stack = createNativeStackNavigator();
 
@@ -45,6 +46,7 @@ export default function AppNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
         <>
+          <Stack.Screen name="TabNavigation" component={TabNavigator} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen
             name="Attendance"

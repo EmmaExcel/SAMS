@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  StyleSheet,
   Text,
   View,
   TextInput,
@@ -20,13 +19,13 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db, auth, rtdb } from "../firebase";
+import { db, rtdb } from "../firebase";
 import { ref, update } from "firebase/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CheckBox } from "react-native-elements";
-import { Picker } from "@react-native-picker/picker";
-import { useAuth } from "../context/authContext";
 import { Dropdown } from "react-native-element-dropdown";
+import { useAuth } from "../context/authContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Course {
   id: string;
@@ -37,7 +36,6 @@ interface Course {
   lecturerName: string;
 }
 
-// List of departments
 const DEPARTMENTS = [
   "Computer Science",
   "Electrical Engineering",
@@ -49,8 +47,9 @@ const DEPARTMENTS = [
   "Physics",
   "Chemistry",
   "Biology",
-  // Add more departments as needed
 ];
+
+const PRIMARY_COLOR = "#5b2333";
 
 export default function StudentProfileSetup() {
   const { refreshUserProfile } = useAuth();
@@ -98,15 +97,10 @@ export default function StudentProfileSetup() {
         where("department", "==", studentDepartment)
       );
       const querySnapshot = await getDocs(q);
-
       const courses: Course[] = [];
       querySnapshot.forEach((doc) => {
-        courses.push({
-          id: doc.id,
-          ...doc.data(),
-        } as Course);
+        courses.push({ id: doc.id, ...doc.data() } as Course);
       });
-
       setAvailableCourses(courses);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -117,13 +111,11 @@ export default function StudentProfileSetup() {
   };
 
   const toggleCourseSelection = (courseId: string) => {
-    setSelectedCourses((prev) => {
-      if (prev.includes(courseId)) {
-        return prev.filter((id) => id !== courseId);
-      } else {
-        return [...prev, courseId];
-      }
-    });
+    setSelectedCourses((prev) =>
+      prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
+        : [...prev, courseId]
+    );
   };
 
   const handleSubmit = async () => {
@@ -140,11 +132,8 @@ export default function StudentProfileSetup() {
     setLoading(true);
 
     try {
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
+      if (!userId) throw new Error("User ID not found");
 
-      // Update Firestore user document
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, {
         name,
@@ -157,7 +146,6 @@ export default function StudentProfileSetup() {
         profileCompleted: true,
       });
 
-      // Update RTDB
       const rtdbUserRef = ref(rtdb, `users/${userId}`);
       await update(rtdbUserRef, {
         name,
@@ -168,7 +156,6 @@ export default function StudentProfileSetup() {
         profileCompleted: true,
       });
 
-      // Update AsyncStorage
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUser = JSON.parse(userData);
@@ -183,6 +170,7 @@ export default function StudentProfileSetup() {
           })
         );
       }
+
       await refreshUserProfile();
       Alert.alert(
         "Profile Setup Complete",
@@ -204,250 +192,183 @@ export default function StudentProfileSetup() {
       setLoading(false);
     }
   };
+
   const data = DEPARTMENTS.map((dept) => ({ label: dept, value: dept }));
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Complete Your Student Profile</Text>
+    <SafeAreaView className="bg-gray-50 flex-1">
+      <ScrollView className="p-6">
+        <View className="mb-8">
+          <Text className="text-3xl font-semibold text-center text-gray-800 mb-3">
+            Student Profile Setup
+          </Text>
+          <Text className="text-gray-600 text-center">
+            Please complete your profile to continue.
+          </Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name *"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Matric Number *"
-        value={matricNumber}
-        onChangeText={setMatricNumber}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Phone Number *"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        keyboardType="phone-pad"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Additional Contact Information"
-        value={contactInfo}
-        onChangeText={setContactInfo}
-        multiline
-      />
-
-      <Text style={styles.sectionTitle}>Academic Information</Text>
-
-      {/* Department Selector */}
-      <View style={styles.pickerContainer}>
-        <Text style={styles.labelText}>Department *</Text>
-        <View style={styles.pickerWrapper}>
-          <Dropdown
-            style={styles.dropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            data={data}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder="Select Department"
-            value={department}
-            onChange={(item) => {
-              setDepartment(item.value);
-            }}
+        <View className="mb-4">
+          <Text className="text-gray-700 font-medium mb-2">Full Name *</Text>
+          <TextInput
+            placeholder="Enter your full name"
+            value={name}
+            onChangeText={setName}
+            className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
           />
         </View>
-      </View>
 
-      <View style={styles.levelSelector}>
-        <Text style={styles.labelText}>Current Level *</Text>
-        <View style={styles.levelButtons}>
-          {["100", "200", "300", "400", "500"].map((lvl) => (
-            <TouchableOpacity
-              key={lvl}
-              style={[
-                styles.levelButton,
-                level === lvl && styles.selectedLevelButton,
-              ]}
-              onPress={() => setLevel(lvl)}
-            >
-              <Text
-                style={[
-                  styles.levelButtonText,
-                  level === lvl && styles.selectedLevelButtonText,
-                ]}
-              >
-                {lvl}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View className="mb-4">
+          <Text className="text-gray-700 font-medium mb-2">
+            Matric Number *
+          </Text>
+          <TextInput
+            placeholder="Enter your matric number"
+            value={matricNumber}
+            onChangeText={setMatricNumber}
+            className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
+          />
         </View>
-      </View>
 
-      <Text style={styles.sectionTitle}>Select Your Courses</Text>
+        <View className="mb-4">
+          <Text className="text-gray-700 font-medium mb-2">Phone Number *</Text>
+          <TextInput
+            placeholder="Enter your phone number"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+            className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
+            maxLength={11}
+          />
+        </View>
 
-      {fetchingCourses ? (
-        <ActivityIndicator size="small" color="#0000ff" />
-      ) : availableCourses.length > 0 ? (
-        <View style={styles.coursesContainer}>
-          {availableCourses.map((course) => (
-            <View key={course.id} style={styles.courseItem}>
-              <CheckBox
-                title={
-                  <View>
-                    <Text
-                      style={styles.courseTitle}
-                    >{`${course.code}: ${course.title}`}</Text>
-                    <Text
-                      style={styles.lecturerName}
-                    >{`Lecturer: ${course.lecturerName}`}</Text>
-                  </View>
-                }
-                checked={selectedCourses.includes(course.id)}
-                onPress={() => toggleCourseSelection(course.id)}
-                containerStyle={styles.checkboxContainer}
-              />
+        <View className="mb-4">
+          <Text className="text-gray-700 font-medium mb-2">
+            Additional Contact Information
+          </Text>
+          <TextInput
+            placeholder="Enter any additional contact information"
+            value={contactInfo}
+            onChangeText={setContactInfo}
+            multiline
+            numberOfLines={7}
+            className="w-full h-16 border border-gray-300 rounded-md px-4 py-3 text-gray-700"
+          />
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-lg font-semibold text-gray-800 mb-3">
+            Academic Information
+          </Text>
+
+          <View className="mb-4">
+            <Text className="text-gray-700 font-medium mb-2">Department *</Text>
+            <Dropdown
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 8,
+              }}
+              placeholderStyle={{ color: "#888", fontSize: 16 }}
+              selectedTextStyle={{ fontWeight: "400" }}
+              data={data}
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="Select Department"
+              value={department}
+              onChange={(item) => setDepartment(item.value)}
+            />
+          </View>
+
+          <View className="mb-2">
+            <Text className="text-gray-700 font-medium mb-2">
+              Current Level *
+            </Text>
+            <View className="flex-row justify-between">
+              {["100", "200", "300", "400", "500"].map((lvl) => (
+                <TouchableOpacity
+                  key={lvl}
+                  className={`px-5 py-3 rounded-md border ${
+                    level === lvl
+                      ? `bg-[${PRIMARY_COLOR}] border-[${PRIMARY_COLOR}]`
+                      : "bg-gray-100 border-gray-300"
+                  }`}
+                  onPress={() => setLevel(lvl)}
+                >
+                  <Text
+                    className={
+                      level === lvl
+                        ? "text-white font-semibold"
+                        : "text-gray-700"
+                    }
+                  >
+                    {lvl}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          ))}
+          </View>
         </View>
-      ) : level && department ? (
-        <Text style={styles.noCourses}>
-          No courses available for {department} department at level {level}.
-          Please check back later.
-        </Text>
-      ) : (
-        <Text style={styles.noCourses}>
-          Please select your department and level to see available courses.
-        </Text>
-      )}
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <Button title="Save and Continue" onPress={handleSubmit} />
-      )}
-    </ScrollView>
+        <View className="mb-2">
+          <Text className="text-lg font-semibold text-gray-800 mb-3">
+            Select Your Courses
+          </Text>
+
+          {fetchingCourses ? (
+            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+          ) : availableCourses.length > 0 ? (
+            <View className="w-full">
+              {availableCourses.map((course) => (
+                <View key={course.id} className="mb-2">
+                  <CheckBox
+                    title={
+                      <View className="ml-1">
+                        <Text className="text-base font-medium text-gray-700">{`${course.code}: ${course.title}`}</Text>
+                        <Text className="text-sm text-gray-500">{`Lecturer: ${course.lecturerName}`}</Text>
+                      </View>
+                    }
+                    checked={selectedCourses.includes(course.id)}
+                    onPress={() => toggleCourseSelection(course.id)}
+                    containerStyle={{
+                      backgroundColor: "#fff",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#ddd",
+                      padding: 12,
+                      marginLeft: 0,
+                      marginRight: 0,
+                    }}
+                    checkedColor={PRIMARY_COLOR}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : level && department ? (
+            <Text className="italic text-gray-500 text-sm text-center">
+              No courses available for {department} at level {level}.
+            </Text>
+          ) : (
+            <Text className="italic text-gray-500 text-sm text-center">
+              Please select your department and level to see available courses.
+            </Text>
+          )}
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        ) : (
+          <TouchableOpacity
+            onPress={handleSubmit}
+            className="w-full bg-[${PRIMARY_COLOR}] py-1 rounded-md items-center"
+          >
+            <Text className="text-primary text-lg font-semibold">
+              Save and Continue
+            </Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 10,
-    alignSelf: "flex-start",
-  },
-  input: {
-    width: "100%",
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-  },
-  pickerContainer: {
-    width: "100%",
-    marginBottom: 15,
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginTop: 5,
-    overflow: "hidden",
-  },
-  picker: {
-    width: "100%",
-    height: 40,
-  },
-  levelSelector: {
-    width: "100%",
-    marginBottom: 15,
-  },
-  labelText: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  levelButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  levelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#f5f5f5",
-  },
-  selectedLevelButton: {
-    backgroundColor: "#0066cc",
-    borderColor: "#0066cc",
-  },
-  levelButtonText: {
-    color: "#333",
-  },
-  selectedLevelButtonText: {
-    color: "#fff",
-  },
-  coursesContainer: {
-    width: "100%",
-    marginTop: 10,
-  },
-  courseItem: {
-    width: "100%",
-    marginBottom: 5,
-  },
-  checkboxContainer: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#eee",
-    padding: 10,
-    marginLeft: 0,
-    marginRight: 0,
-  },
-  courseTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  lecturerName: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  noCourses: {
-    fontStyle: "italic",
-    color: "#666",
-    marginTop: 10,
-    textAlign: "center",
-  },
-  dropdown: {
-    padding: 8,
-  },
-  placeholderStyle: {
-    color: "#888",
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    fontWeight: 400,
-  },
-});

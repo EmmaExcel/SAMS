@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  StyleSheet,
   Text,
   View,
   TextInput,
@@ -15,10 +14,11 @@ import { doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth, rtdb } from "../firebase";
 import { ref, update } from "firebase/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
 import { Dropdown } from "react-native-element-dropdown";
 import { useAuth } from "../context/authContext";
-// List of departments
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
 const DEPARTMENTS = [
   "Computer Science",
   "Electrical Engineering",
@@ -30,8 +30,9 @@ const DEPARTMENTS = [
   "Physics",
   "Chemistry",
   "Biology",
-  // Add more departments as needed
 ];
+
+const PRIMARY_COLOR = "#5b2333";
 
 export default function LecturerProfileSetup() {
   const { refreshUserProfile } = useAuth();
@@ -39,12 +40,13 @@ export default function LecturerProfileSetup() {
   const [lecturerId, setLecturerId] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [contactInfo, setContactInfo] = useState("");
-  const [department, setDepartment] = useState(""); // Add department state
+  const [department, setDepartment] = useState("");
   const [courses, setCourses] = useState([{ code: "", title: "", level: "" }]);
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   const navigation = useNavigation();
+  const data = DEPARTMENTS.map((dept) => ({ label: dept, value: dept }));
 
   useEffect(() => {
     const getUserData = async () => {
@@ -67,9 +69,18 @@ export default function LecturerProfileSetup() {
     setCourses(updatedCourses);
   };
 
+  const deleteCourse = (index: number) => {
+    if (courses.length <= 1) {
+      Alert.alert("Cannot Delete", "You must have at least one course.");
+      return;
+    }
+
+    const updatedCourses = courses.filter((_, i) => i !== index);
+    setCourses(updatedCourses);
+  };
+
   const handleSubmit = async () => {
     if (!name || !phoneNumber || !department) {
-      // Add department validation
       Alert.alert("Error", "Name, phone number, and department are required");
       return;
     }
@@ -82,60 +93,47 @@ export default function LecturerProfileSetup() {
     }
 
     setLoading(true);
-
     try {
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
+      if (!userId) throw new Error("User ID not found");
 
-      // Update Firestore user document
       const userRef = doc(db, "users", userId);
       await updateDoc(userRef, {
         name,
         lecturerId,
         phoneNumber,
         contactInfo,
-        department, // Add department to Firestore
+        department,
         profileCompleted: true,
       });
 
-      // Add courses to Firestore
       for (const course of courses) {
         const courseRef = doc(db, "courses", course.code);
         const courseDoc = await getDoc(courseRef);
 
+        const courseData = {
+          code: course.code,
+          title: course.title,
+          level: course.level,
+          department,
+          lecturerId: userId,
+          lecturerName: name,
+        };
+
         if (!courseDoc.exists()) {
-          // Use setDoc for new documents
-          await setDoc(courseRef, {
-            code: course.code,
-            title: course.title,
-            level: course.level,
-            department, // Add department to course
-            lecturerId: userId,
-            lecturerName: name,
-          });
+          await setDoc(courseRef, courseData);
         } else {
-          // If the course already exists, update it
-          await updateDoc(courseRef, {
-            title: course.title,
-            level: course.level,
-            department, // Add department to course
-            lecturerId: userId,
-            lecturerName: name,
-          });
+          await updateDoc(courseRef, courseData);
         }
       }
 
-      // Update RTDB
       const rtdbUserRef = ref(rtdb, `users/${userId}`);
       await update(rtdbUserRef, {
         name,
         phoneNumber,
-        department, // Add department to RTDB
+        department,
         profileCompleted: true,
       });
 
-      // Update AsyncStorage
       const userData = await AsyncStorage.getItem("user");
       if (userData) {
         const parsedUser = JSON.parse(userData);
@@ -144,7 +142,7 @@ export default function LecturerProfileSetup() {
           JSON.stringify({
             ...parsedUser,
             name,
-            department, // Add department to AsyncStorage
+            department,
             profileCompleted: true,
           })
         );
@@ -173,183 +171,197 @@ export default function LecturerProfileSetup() {
       setLoading(false);
     }
   };
-  const data = DEPARTMENTS.map((dept) => ({ label: dept, value: dept }));
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Complete Your Lecturer Profile</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name *"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Lecturer ID (Optional)"
-        value={lecturerId}
-        onChangeText={setLecturerId}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Phone Number *"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        keyboardType="phone-pad"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Additional Contact Information"
-        value={contactInfo}
-        onChangeText={setContactInfo}
-        multiline
-      />
-
-      {/* Department Selector */}
-      <View style={styles.pickerContainer}>
-        <Text style={styles.labelText}>Department *</Text>
-        <View style={styles.pickerWrapper}>
-          <Dropdown
-            style={styles.dropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            data={data}
-            maxHeight={300}
-            labelField="label"
-            valueField="value"
-            placeholder="Select Department"
-            value={department}
-            onChange={(item) => {
-              setDepartment(item.value);
-            }}
-          />
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="flex-1  items-center justify-center px-4 py-1">
+        <View className="mb-8">
+          <Text className="text-3xl font-semibold text-center text-gray-800 mb-3">
+            Lecturer Profile Setup
+          </Text>
+          <Text className="text-gray-600 text-center">
+            Please complete your profile to continue.
+          </Text>
         </View>
+
+        <ScrollView
+          className="flex-1 w-full"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="mb-4">
+            <Text className="text-gray-700 font-medium mb-2">Full Name *</Text>
+            <TextInput
+              placeholder="Enter your full name"
+              value={name}
+              onChangeText={setName}
+              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
+            />
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-gray-700 font-medium mb-2">
+              Lecturer ID (Optional)
+            </Text>
+            <TextInput
+              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
+              placeholder="Lecturer ID"
+              value={lecturerId}
+              onChangeText={setLecturerId}
+            />
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-gray-700 font-medium mb-2">
+              Phone Number *
+            </Text>
+            <TextInput
+              placeholder="Enter your phone number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
+              maxLength={11}
+            />
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-gray-700 font-medium mb-2">
+              Additional Contact Information
+            </Text>
+            <TextInput
+              placeholder="Enter any additional contact information"
+              value={contactInfo}
+              onChangeText={setContactInfo}
+              multiline
+              numberOfLines={7}
+              className="w-full h-16 border border-gray-300 rounded-md px-4 py-3 text-gray-700"
+            />
+          </View>
+
+          <View className="w-full mb-4">
+            <Text className="text-gray-700 font-medium mb-2">Department *</Text>
+            <Dropdown
+              style={{
+                padding: 10,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 6,
+              }}
+              placeholderStyle={{ color: "#888", fontSize: 14 }}
+              selectedTextStyle={{ fontWeight: "400" }}
+              data={data}
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder="Select Department"
+              value={department}
+              onChange={(item) => setDepartment(item.value)}
+            />
+          </View>
+
+          <Text className="text-gray-700 font-medium mb-2">
+            Courses you teach *
+          </Text>
+
+          {courses.map((course, index) => (
+            <View
+              key={index}
+              className="w-full p-3 mb-4 bg-neutral-50/15 border border-primary/50 rounded "
+            >
+              <View className="flex-row justify-between items-center mb-2">
+                <Text className="font-semibold text-primary">
+                  Course {index + 1}
+                </Text>
+                {index > 0 && (
+                  <TouchableOpacity
+                    onPress={() => deleteCourse(index)}
+                    className="p-1"
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#5b2333" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View className="flex flex-col gap-3 py-2">
+                <View className="">
+                  <Text className="text-gray-700 font-medium mb-2">
+                    Course Code
+                  </Text>
+                  <TextInput
+                    className="w-full h-12 border border-gray-300 uppercase rounded-md px-4 text-gray-700 "
+                    placeholder="Course Code (e.g., CSC101) *"
+                    value={course.code}
+                    onChangeText={(value) => updateCourse(index, "code", value)}
+                  />
+                </View>
+
+                <View className="">
+                  <Text className="text-gray-700 font-medium mb-2">
+                    Course Title
+                  </Text>
+                  <TextInput
+                    className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700 "
+                    placeholder="Course Title *"
+                    value={course.title}
+                    onChangeText={(value) =>
+                      updateCourse(index, "title", value)
+                    }
+                  />
+                </View>
+                <View className="">
+                  <Text className="text-gray-700 font-medium mb-2">
+                    Course Level
+                  </Text>
+                  <View className="flex-row justify-between">
+                    {["100", "200", "300", "400", "500"].map((lvl) => (
+                      <TouchableOpacity
+                        key={lvl}
+                        className={`px-5 py-3 rounded-md border ${
+                          course.level === lvl
+                            ? `bg-primary border-primary`
+                            : "bg-gray-100 border-gray-300"
+                        }`}
+                        onPress={() => updateCourse(index, "level", lvl)}
+                      >
+                        <Text
+                          className={
+                            course.level === lvl
+                              ? "text-white font-semibold"
+                              : "text-gray-700"
+                          }
+                        >
+                          {lvl}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity
+            className="mb-4 py-2 w-full flex flex-row justify-center"
+            onPress={addCourse}
+          >
+            <Text className="bg-primary text-white rounded-md py-4 px-3 font-bold text-center">
+              + Add Another Course
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+        {loading ? (
+          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        ) : (
+          <TouchableOpacity
+            onPress={handleSubmit}
+            className="w-full bg-[${PRIMARY_COLOR}] py-1 rounded-md items-center"
+          >
+            <Text className="text-primary text-lg font-semibold">
+              Save and Continue
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
-
-      <Text style={styles.sectionTitle}>Courses You Teach</Text>
-
-      {courses.map((course, index) => (
-        <View key={index} style={styles.courseContainer}>
-          <Text style={styles.courseHeader}>Course {index + 1}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Course Code (e.g., CSC101) *"
-            value={course.code}
-            onChangeText={(value) => updateCourse(index, "code", value)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Course Title *"
-            value={course.title}
-            onChangeText={(value) => updateCourse(index, "title", value)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Level (e.g., 100, 200, etc.) *"
-            value={course.level}
-            onChangeText={(value) => updateCourse(index, "level", value)}
-            keyboardType="number-pad"
-          />
-        </View>
-      ))}
-
-      <TouchableOpacity style={styles.addButton} onPress={addCourse}>
-        <Text style={styles.addButtonText}>+ Add Another Course</Text>
-      </TouchableOpacity>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <Button title="Save and Continue" onPress={handleSubmit} />
-      )}
-    </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 10,
-    alignSelf: "flex-start",
-  },
-  input: {
-    width: "100%",
-    height: 40,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-  },
-  pickerContainer: {
-    width: "100%",
-    marginBottom: 15,
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginTop: 5,
-    overflow: "hidden",
-  },
-  picker: {
-    width: "100%",
-    height: 40,
-  },
-  labelText: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  courseContainer: {
-    width: "100%",
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  courseHeader: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  addButton: {
-    marginVertical: 15,
-    padding: 10,
-  },
-  addButtonText: {
-    color: "#0066cc",
-    fontWeight: "bold",
-  },
-
-  dropdown: {
-    padding: 8,
-  },
-  placeholderStyle: {
-    color: "#888",
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    fontWeight: 400,
-  },
-});

@@ -5,11 +5,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ref, set, serverTimestamp } from "firebase/database";
 import { doc, getDoc } from "firebase/firestore";
 
-// Define a type for the user profile data
 interface UserProfile {
   name?: string;
   level?: string;
-  department?: string; // Add department field
+  department?: string;
   matricNumber?: string;
   phoneNumber?: string;
   contactInfo?: string;
@@ -17,10 +16,9 @@ interface UserProfile {
   userType?: string;
   profileCompleted?: boolean;
 
-  [key: string]: any; // Allow for other fields
+  [key: string]: any;
 }
 
-// Define types for the auth context
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
@@ -44,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<string | null>(null);
   const [profileCompleted, setProfileCompleted] = useState<boolean>(false);
+
+  console.log("User Profile:", userProfile);
 
   useEffect(() => {
     // Listen for authentication state changes
