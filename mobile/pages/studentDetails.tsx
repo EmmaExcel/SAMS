@@ -154,7 +154,6 @@ export default function StudentDetails() {
     );
   }
 
-  // Generate a consistent avatar color based on student name
   const getInitials = (name: string) => {
     return name
       .split(" ")
