@@ -41,16 +41,15 @@ export default function AttendanceHistory() {
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [studentId, setStudentId] = useState("");
   const [studentName, setStudentName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [scanning, setScanning] = useState(false);
-  // Add state for course filtering
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [filteredRecords, setFilteredRecords] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [modalView, setModalView] = useState<"details" | "addStudent">(
     "details"
@@ -72,6 +71,7 @@ export default function AttendanceHistory() {
           ...doc.data(),
         }));
 
+        console.log(`Found ${coursesData.length} courses for lecturer`);
         setCourses(coursesData);
       } catch (error) {
         console.error("Error fetching courses:", error);
@@ -91,6 +91,8 @@ export default function AttendanceHistory() {
     setLoading(true);
     try {
       const lecturerId = auth.currentUser.uid;
+      console.log("Fetching attendance records for lecturer:", lecturerId);
+
       const attendanceQuery = query(
         collection(db, "attendance"),
         where("lecturerId", "==", lecturerId)
@@ -100,14 +102,26 @@ export default function AttendanceHistory() {
       const records: any = [];
 
       querySnapshot.forEach((doc) => {
-        records.push({
+        const data = doc.data();
+        // Handle Firestore timestamps properly
+        const record = {
           id: doc.id,
-          ...doc.data(),
+          ...data,
           date:
-            doc.data().date ||
-            new Date(doc.data().createdAt.toDate()).toISOString().split("T")[0],
-        });
+            data.date ||
+            (data.createdAt && data.createdAt.toDate
+              ? data.createdAt.toDate().toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0]),
+          startTime: data.startTime,
+          endTime: data.endTime,
+          // Ensure students array exists
+          students: data.students || [],
+        };
+
+        records.push(record);
       });
+
+      console.log(`Found ${records.length} attendance records`);
 
       // Sort by date, most recent first
       records.sort(
@@ -150,6 +164,28 @@ export default function AttendanceHistory() {
     setFilteredRecords(filtered);
   };
 
+  // Filter records by search query
+  const getFilteredData = () => {
+    if (!searchQuery.trim()) {
+      return filteredRecords;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return filteredRecords.filter((record: any) => {
+      // Search by course code or title
+      const courseCode = record.courseCode?.toLowerCase() || "";
+      const courseTitle = record.courseTitle?.toLowerCase() || "";
+      // Search by date
+      const date = record.date?.toLowerCase() || "";
+
+      return (
+        courseCode.includes(query) ||
+        courseTitle.includes(query) ||
+        date.includes(query)
+      );
+    });
+  };
+
   const handleCourseSelect = (courseId: any) => {
     setSelectedCourseId(courseId === selectedCourseId ? null : courseId);
     filterRecordsByCourse(courseId === selectedCourseId ? null : courseId);
@@ -163,18 +199,18 @@ export default function AttendanceHistory() {
   const closeEditModal = () => {
     setSelectedRecord(null);
     setShowEditModal(false);
+    setModalView("details"); // Reset to details view when closing
   };
 
   const openAddStudentModal = () => {
     console.log("Opening add student modal");
-    // Instead of opening a new modal, switch the view in the current modal
     setModalView("addStudent");
   };
+
   const closeAddStudentModal = () => {
     setStudentId("");
     setStudentName("");
     setStudentEmail("");
-    // Switch back to the details view
     setModalView("details");
   };
 
@@ -223,6 +259,13 @@ export default function AttendanceHistory() {
         )
       );
 
+      // Also update filtered records
+      setFilteredRecords((records: any) =>
+        records.map((r: any) =>
+          r.id === selectedRecord.id ? updatedRecord : r
+        )
+      );
+
       Alert.alert("Success", "Student added to attendance record");
       closeAddStudentModal();
     } catch (error) {
@@ -266,6 +309,13 @@ export default function AttendanceHistory() {
               r.id === selectedRecord.id ? updatedRecord : r
             )
           );
+
+          // Also update filtered records
+          setFilteredRecords((records: any) =>
+            records.map((r: any) =>
+              r.id === selectedRecord.id ? updatedRecord : r
+            )
+          );
         }
       }
     } catch (error) {
@@ -288,14 +338,20 @@ export default function AttendanceHistory() {
         colors={["#5b2333", "#7d3045"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className="pt-12 pb-6 px-4"
+        style={{
+          paddingTop: 50,
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          borderBottomLeftRadius: 20,
+          borderBottomRightRadius: 20,
+        }}
       >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
             className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={24} color="white" />
+            <Ionicons name="chevron-back" size={22} color="white" />
           </TouchableOpacity>
 
           <Text className="text-white text-xl font-bold">
@@ -305,12 +361,15 @@ export default function AttendanceHistory() {
           <View className="w-10 h-10" />
         </View>
 
+        {/* Search bar */}
         <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2">
           <Ionicons name="search-outline" size={20} color="white" />
           <TextInput
             className="flex-1 ml-2 text-white"
-            placeholder="Search attendance records..."
+            placeholder="Search by course or date..."
             placeholderTextColor="rgba(255,255,255,0.7)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
         </View>
       </LinearGradient>
@@ -319,13 +378,12 @@ export default function AttendanceHistory() {
     </View>
   );
 
-  // Add course filter UI
   const renderCourseFilter = () => {
     if (courses.length === 0) return null;
 
     return (
-      <View className="px-4 py-3 bg-white shadow-sm">
-        <Text className="text-sm font-medium text-gray-600 mb-2">
+      <View className="px-4 py-3 bg-white mb-4">
+        <Text className="text-sm font-medium text-gray-700 mb-2">
           Filter by Course:
         </Text>
         <ScrollView
@@ -335,7 +393,7 @@ export default function AttendanceHistory() {
         >
           <TouchableOpacity
             className={`px-4 py-2 mr-2 rounded-xl ${
-              !selectedCourseId ? "bg-[#5b2333]" : "bg-gray-100"
+              !selectedCourseId ? "bg-[#5b2333]" : "bg-gray-200"
             }`}
             onPress={() => handleCourseSelect(null)}
           >
@@ -380,22 +438,27 @@ export default function AttendanceHistory() {
     });
     const studentCount = item.students ? item.students.length : 0;
 
-    // Format time
-    const startTime = item.startTime
-      ? new Date(item.startTime).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })
-      : "";
+    // Format time - handle Firestore timestamps properly
+    const formatTime = (timestamp: any) => {
+      if (!timestamp) return "";
 
-    const endTime = item.endTime
-      ? new Date(item.endTime).toLocaleTimeString([], {
+      try {
+        const date = timestamp.toDate
+          ? timestamp.toDate()
+          : new Date(timestamp);
+        return date.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
-        })
-      : "";
+        });
+      } catch (error) {
+        console.error("Error formatting time:", error);
+        return "";
+      }
+    };
+
+    const startTime = formatTime(item.startTime);
+    const endTime = formatTime(item.endTime);
 
     return (
       <TouchableOpacity
@@ -449,12 +512,14 @@ export default function AttendanceHistory() {
             </View>
           </View>
 
-          <View className="flex-row items-center mt-2">
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <Text className="text-sm text-gray-600 ml-1">
-              {startTime} - {endTime}
-            </Text>
-          </View>
+          {startTime && (
+            <View className="flex-row items-center mt-2">
+              <Ionicons name="time-outline" size={16} color="#666" />
+              <Text className="text-sm text-gray-600 ml-1">
+                {startTime} {endTime ? `- ${endTime}` : ""}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Footer */}
@@ -480,11 +545,19 @@ export default function AttendanceHistory() {
 
   const renderStudentItem = ({ item }: { item: any }) => {
     // Format timestamp
-    const timestamp = new Date(item.timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    const formatTimestamp = (timestamp: string) => {
+      try {
+        return new Date(timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+      } catch (error) {
+        return "Unknown time";
+      }
+    };
+
+    const timestamp = formatTimestamp(item.timestamp);
 
     // Determine method color
     const getMethodColor = (method: string) => {
@@ -512,7 +585,7 @@ export default function AttendanceHistory() {
               {item.name || "Unknown"}
             </Text>
             <Text className="text-sm text-gray-600 mt-0.5">
-              ID: {item.studentId || item.id}
+              ID: {item.studentId || item.id || "Unknown"}
             </Text>
             {item.email && item.email !== "Unknown" && (
               <Text className="text-sm text-gray-600 mt-0.5">{item.email}</Text>
@@ -562,7 +635,9 @@ export default function AttendanceHistory() {
         </Text>
 
         <Text className="text-gray-500 text-center mb-6">
-          {selectedCourseId
+          {searchQuery
+            ? "No records match your search. Try a different search term."
+            : selectedCourseId
             ? "No attendance records found for this course. Try selecting a different course."
             : "You haven't saved any attendance records yet. Start an attendance session to begin tracking."}
         </Text>
@@ -578,18 +653,17 @@ export default function AttendanceHistory() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50">
       <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
-
+      {renderHeader()}
       <FlatList
-        data={filteredRecords}
+        data={getFilteredData()}
         keyExtractor={(item) => item.id}
         renderItem={renderAttendanceItem}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={!loading ? renderEmptyState : null}
         contentContainerStyle={{
           flexGrow: 1,
-          paddingBottom: 20,
+          paddingBottom: 70,
         }}
         refreshControl={
           <RefreshControl
@@ -607,17 +681,16 @@ export default function AttendanceHistory() {
                 Loading attendance records...
               </Text>
             </View>
-          ) : filteredRecords.length > 0 ? (
+          ) : getFilteredData().length > 0 ? (
             <View className="py-4 items-center">
               <Text className="text-gray-400 text-xs">
-                {filteredRecords.length} attendance records
+                {getFilteredData().length} attendance records
               </Text>
             </View>
           ) : null
         }
       />
 
-      {/* Record Details Modal */}
       <Modal
         visible={showEditModal}
         transparent={true}
@@ -632,7 +705,9 @@ export default function AttendanceHistory() {
 
               <View className="flex-row items-center justify-between w-full px-6">
                 <Text className="text-xl font-bold text-gray-800">
-                  Attendance Details
+                  {modalView === "details"
+                    ? "Attendance Details"
+                    : "Add Student"}
                 </Text>
                 <TouchableOpacity onPress={closeEditModal}>
                   <Ionicons name="close" size={24} color="#666" />
@@ -740,7 +815,7 @@ export default function AttendanceHistory() {
 
                 {selectedRecord?.students?.length > 0 ? (
                   selectedRecord.students.map((student: any, index: number) => (
-                    <View key={`${student.id}-${index}`}>
+                    <View key={`${student.id || student.studentId || index}`}>
                       {renderStudentItem({ item: student })}
                     </View>
                   ))
@@ -821,9 +896,8 @@ export default function AttendanceHistory() {
         </View>
       </Modal>
 
-      {/* Floating Action Button */}
       <TouchableOpacity
-        className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-[#5b2333] items-center justify-center shadow-lg"
+        className="absolute bottom-24 right-6 w-14 h-14 rounded-full bg-[#5b2333] items-center justify-center shadow-lg"
         style={{
           shadowColor: "#5b2333",
           shadowOffset: { width: 0, height: 4 },
@@ -835,6 +909,6 @@ export default function AttendanceHistory() {
       >
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }

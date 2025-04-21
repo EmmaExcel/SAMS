@@ -10,6 +10,8 @@ import QuizScreen from "../pages/quiz";
 import { useAuth } from "../context/authContext";
 import Profile from "../pages/Profile";
 import MyStudents from "../pages/myStudents";
+import StudentAttendanceHistory from "../pages/studentAttendanceHistory";
+import StudentCourses from "../pages/MyCourses";
 
 const Tab = createBottomTabNavigator();
 
@@ -48,7 +50,7 @@ const TabNavigator = () => {
             iconName = focused ? "time" : "time-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
-          } else if (route.name === "Courses") {
+          } else if (route.name === "My Courses") {
             iconName = focused ? "book" : "book";
           }
 
@@ -76,15 +78,17 @@ const TabNavigator = () => {
 
       <Tab.Screen
         name="HistoryTab"
-        component={AttendanceHistory}
+        component={
+          userType === "student" ? StudentAttendanceHistory : AttendanceHistory
+        }
         options={{ tabBarLabel: "History" }}
       />
 
       {userType === "student" && (
         <Tab.Screen
-          name="Courses"
-          component={QuizScreen}
-          options={{ tabBarLabel: "Courses" }}
+          name="My Courses"
+          component={StudentCourses}
+          options={{ tabBarLabel: "My Courses" }}
         />
       )}
 

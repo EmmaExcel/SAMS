@@ -16,6 +16,8 @@ import MyStudents from "../myStudents";
 import StudentDetails from "../studentDetails";
 import { useNavigation } from "@react-navigation/native";
 import TabNavigator from "../../component/TabNavigation";
+import StudentAttendanceHistory from "../studentAttendanceHistory";
+import StudentCourses from "../MyCourses";
 
 const Stack = createNativeStackNavigator();
 
@@ -58,6 +60,20 @@ export default function AppNavigator() {
           <Stack.Screen
             name="AttendanceHistory"
             component={AttendanceHistory}
+            options={{
+              gestureEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="StudentAttendanceHistory"
+            component={StudentAttendanceHistory}
+            options={{
+              gestureEnabled: true,
+            }}
+          />
+          <Stack.Screen
+            name="MyCourses"
+            component={StudentCourses}
             options={{
               gestureEnabled: true,
             }}
