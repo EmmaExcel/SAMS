@@ -1,19 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import QuizModal from "../component/quizmodal";
 import { useQuiz } from "../context/quizContext";
 import { useAuth } from "../context/authContext";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 export default function QuizScreen() {
-  const { user } = useAuth();
+  const navigation = useNavigation();
+  const { user, userProfile } = useAuth();
   const {
     activeQuizzes,
     refreshQuizzes,
@@ -24,16 +27,27 @@ export default function QuizScreen() {
     closeQuizPopup,
   } = useQuiz();
 
-  // Local state for the quiz page
-  const [currentPageQuiz, setCurrentPageQuiz] = React.useState<any>(null);
-  const [showPageQuizModal, setShowPageQuizModal] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
+  const [currentPageQuiz, setCurrentPageQuiz] = useState<any>(null);
+  const [showPageQuizModal, setShowPageQuizModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    // Initial load of quizzes
-    setLoading(true);
-    refreshQuizzes().finally(() => setLoading(false));
+  useEffect(() => {
+    loadQuizzes();
   }, []);
+
+  const loadQuizzes = () => {
+    setLoading(true);
+    refreshQuizzes().finally(() => {
+      setLoading(false);
+      setRefreshing(false);
+    });
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadQuizzes();
+  };
 
   const openQuiz = (quiz: any) => {
     setCurrentPageQuiz(quiz);
@@ -45,64 +59,128 @@ export default function QuizScreen() {
     setCurrentPageQuiz(null);
   };
 
-  // Handle quiz submission from the page modal
   const handlePageQuizSubmit = async (answer: string) => {
     if (!currentPageQuiz) return;
     await handleQuizSubmit(answer);
     closeQuizModal();
   };
 
+  const renderEmptyState = () => (
+    <View className="flex-1 justify-center items-center px-6">
+      <Ionicons
+        name="help-circle-outline"
+        size={64}
+        color="#5b2333"
+        style={{ opacity: 0.5 }}
+      />
+      <Text className="text-lg font-bold text-gray-600 text-center mb-2 mt-4">
+        No active quizzes available
+      </Text>
+      <Text className="text-base text-gray-500 text-center mb-6">
+        Quizzes will appear here when your lecturer assigns them for courses
+        you're enrolled in
+      </Text>
+      <TouchableOpacity
+        className="bg-[#5b2333] px-6 py-3 rounded-xl items-center"
+        onPress={() => navigation.goBack()}
+      >
+        <Text className="text-white font-semibold">Go Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Active Quizzes</Text>
-        <Text style={styles.subHeaderText}>
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <View className="bg-[#5b2333] p-4 flex-row items-center">
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center rounded-full bg-white/20 mr-3"
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text className="text-2xl font-bold text-white">Active Quizzes</Text>
+      </View>
+
+      <View className="p-4">
+        <Text className="text-base text-gray-600">
           Complete quizzes to mark your attendance
         </Text>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
-          <Text style={styles.loadingText}>Loading quizzes...</Text>
+      {loading && !refreshing ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#5b2333" />
+          <Text className="mt-3 text-gray-600 text-base">
+            Loading quizzes...
+          </Text>
         </View>
       ) : activeQuizzes.length > 0 ? (
-        <ScrollView style={styles.quizList}>
+        <ScrollView
+          className="flex-1 px-4"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#5b2333"]}
+              tintColor="#5b2333"
+            />
+          }
+        >
           {activeQuizzes.map((quiz: any) => (
-            <View key={quiz.id} style={styles.quizItem}>
-              <Text style={styles.quizTitle}>{quiz.question}</Text>
-              <Text style={styles.quizPoints}>Points: {quiz.points || 1}</Text>
+            <View
+              key={quiz.id}
+              className="bg-white p-4 rounded-lg mb-3 shadow shadow-black/10"
+            >
+              <Text className="text-lg font-semibold mb-2 text-[#5b2333]">
+                {quiz.question}
+              </Text>
+              <Text className="text-sm text-[#5b2333] mb-1">
+                Points: {quiz.points || 1}
+              </Text>
 
-              {/* Add course information if available */}
               {quiz.courseCode && (
-                <View style={styles.courseInfo}>
-                  <Text style={styles.courseCode}>{quiz.courseCode}</Text>
-                  <Text style={styles.courseTitle}>
+                <View className="flex-row items-center bg-gray-100 p-2 rounded mb-2">
+                  <Text className="font-semibold text-[#5b2333] mr-2">
+                    {quiz.courseCode}
+                  </Text>
+                  <Text className="text-sm">
                     {quiz.courseTitle || "Unknown Course"}
                   </Text>
                 </View>
               )}
 
-              <Text style={styles.quizTime}>
-                Expires: {new Date(quiz.expiresAt).toLocaleTimeString()}
+              <Text className="text-sm text-gray-600 mb-3">
+                Expires:{" "}
+                {new Date(quiz.expiresAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
               </Text>
 
               <TouchableOpacity
-                style={styles.quizButton}
+                className="bg-[#5b2333] py-2 rounded items-center"
                 onPress={() => openQuiz(quiz)}
               >
-                <Text style={styles.quizButtonText}>Answer Quiz</Text>
+                <Text className="text-white font-bold">Answer Quiz</Text>
               </TouchableOpacity>
             </View>
           ))}
         </ScrollView>
       ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No active quizzes available</Text>
-          <Text style={styles.emptySubText}>
-            Quizzes will appear here when your lecturer assigns them
-          </Text>
-        </View>
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#5b2333"]}
+              tintColor="#5b2333"
+            />
+          }
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {renderEmptyState()}
+        </ScrollView>
       )}
 
       {currentPageQuiz && (
@@ -122,109 +200,25 @@ export default function QuizScreen() {
           }
         />
       )}
+
+      {/* Popup Quiz Modal */}
+      {currentPopupQuiz && (
+        <QuizModal
+          visible={showQuizPopup}
+          question={currentPopupQuiz.question}
+          onClose={closeQuizPopup}
+          onSubmit={handleQuizSubmit}
+          points={currentPopupQuiz.points || 1}
+          courseInfo={
+            currentPopupQuiz.courseCode
+              ? {
+                  code: currentPopupQuiz.courseCode,
+                  title: currentPopupQuiz.courseTitle,
+                }
+              : undefined
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    marginBottom: 20,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  subHeaderText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#666",
-  },
-  quizList: {
-    flex: 1,
-  },
-  quizItem: {
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  quizTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  quizTime: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 12,
-  },
-  quizButton: {
-    backgroundColor: "#6200ee",
-    padding: 10,
-    borderRadius: 4,
-    alignItems: "center",
-  },
-  quizButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  emptySubText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-  },
-  quizPoints: {
-    fontSize: 14,
-    color: "#6200ee",
-    marginBottom: 4,
-  },
-  courseInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    backgroundColor: "#f0f0f0",
-    padding: 5,
-    borderRadius: 4,
-  },
-  courseCode: {
-    fontWeight: "bold",
-    marginRight: 8,
-    color: "#6200ee",
-  },
-  courseTitle: {
-    fontSize: 14,
-  },
-});

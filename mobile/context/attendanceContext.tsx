@@ -20,6 +20,8 @@ import {
   getDoc,
   Timestamp,
   arrayUnion,
+  getDocs,
+  where,
 } from "firebase/firestore";
 import { useLocation } from "./locationContext";
 import { getDistance } from "geolib";
@@ -80,6 +82,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
   );
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [enrolledStudentIds, setEnrolledStudentIds] = useState<Set<string>>(
+    new Set()
+  );
 
   // Add this useEffect at the beginning of the AttendanceProvider component
   useEffect(() => {
@@ -124,10 +129,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
             const courseRef = doc(db, "courses", activeSession.courseId);
             const courseDoc = await getDoc(courseRef);
             if (courseDoc.exists()) {
-              setSelectedCourse({
+              const courseData = {
                 id: courseDoc.id,
                 ...courseDoc.data(),
-              });
+              };
+              setSelectedCourse(courseData);
+
+              // Fetch enrolled students for this course
+              await fetchEnrolledStudents(courseData);
             }
           }
 
@@ -237,24 +246,92 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [isAttendanceActive, attendanceStartTime, attendanceDuration]);
 
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (attendanceTimer) {
-        clearTimeout(attendanceTimer);
-      }
-    };
-  }, [attendanceTimer]);
+  // Fetch enrolled students for a course
+  const fetchEnrolledStudents = async (course: any) => {
+    if (!course || !course.id) return;
+
+    try {
+      console.log(`Fetching enrolled students for course: ${course.code}`);
+      const enrolledIds = new Set<string>();
+
+      // APPROACH 1: Check enrollments collection
+      const enrollmentsQuery = query(
+        collection(db, "enrollments"),
+        where("courseId", "==", course.id)
+      );
+
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
+      enrollmentsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.studentId) {
+          enrolledIds.add(data.studentId);
+        }
+      });
+
+      // APPROACH 2: Check courseRegistrations collection
+      const registrationsQuery = query(
+        collection(db, "courseRegistrations"),
+        where("courseCode", "==", course.code)
+      );
+
+      const registrationsSnapshot = await getDocs(registrationsQuery);
+
+      registrationsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.studentId) {
+          enrolledIds.add(data.studentId);
+        }
+      });
+
+      // APPROACH 3: Check users collection for students with this course
+      const usersQuery = query(
+        collection(db, "users"),
+        where("userType", "==", "student")
+      );
+
+      const usersSnapshot = await getDocs(usersQuery);
+
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (
+          userData.courses &&
+          Array.isArray(userData.courses) &&
+          (userData.courses.includes(course.id) ||
+            userData.courses.includes(course.code))
+        ) {
+          enrolledIds.add(doc.id);
+        }
+      });
+
+      console.log(
+        `Found ${enrolledIds.size} enrolled students for course ${course.code}`
+      );
+      setEnrolledStudentIds(enrolledIds);
+    } catch (error) {
+      console.error("Error fetching enrolled students:", error);
+    }
+  };
 
   // Monitor students in range when attendance is active
   useEffect(() => {
-    if (!isAttendanceActive || !location || !auth.currentUser) {
+    if (
+      !isAttendanceActive ||
+      !location ||
+      !auth.currentUser ||
+      !selectedCourse
+    ) {
       return;
     }
 
     // Only monitor students if in automatic mode
     if (attendanceMode !== AttendanceMode.AUTOMATIC) {
       return;
+    }
+
+    // Fetch enrolled students when starting attendance
+    if (enrolledStudentIds.size === 0) {
+      fetchEnrolledStudents(selectedCourse);
     }
 
     const lecturerId = auth.currentUser.uid;
@@ -282,6 +359,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
           !userData.location ||
           (userData.userType !== "student" && userData.userType !== undefined)
         ) {
+          return;
+        }
+
+        // Skip if student is not enrolled in this course
+        if (!enrolledStudentIds.has(userId)) {
+          console.log(
+            `Student ${userId} is not enrolled in course ${selectedCourse.code}, skipping`
+          );
           return;
         }
 
@@ -358,9 +443,11 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     radius,
     attendanceMode,
     attendanceSessionId,
+    selectedCourse,
+    enrolledStudentIds,
   ]);
 
-  const startAttendance = (
+  const startAttendance = async (
     mode: AttendanceMode,
     course: any,
     duration?: number
@@ -384,10 +471,14 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     setAttendanceStartTime(new Date());
     setStudentsInAttendance([]);
 
+    // Fetch enrolled students for this course
+    await fetchEnrolledStudents(course);
+
     // Use provided duration or default
     const sessionDuration = duration || attendanceDuration;
     setAttendanceDuration(sessionDuration);
     setTimeRemaining(sessionDuration * 60);
+
     // Create a new attendance session in RTDB with course info
     if (auth.currentUser) {
       const lecturerId = auth.currentUser.uid;
@@ -497,6 +588,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       setStudentsInAttendance([]);
       setAttendanceSessionId(null);
       setSelectedCourse(null);
+      setEnrolledStudentIds(new Set());
 
       Alert.alert("Success", "Attendance has been saved successfully.");
       return attendanceRef.id;
@@ -508,8 +600,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // Add a student to attendance via quiz
-  const addStudentViaQuiz = (studentId: string, studentData: any) => {
-    if (!isAttendanceActive || attendanceMode !== AttendanceMode.QUIZ_BASED) {
+  const addStudentViaQuiz = async (studentId: string, studentData: any) => {
+    if (
+      !isAttendanceActive ||
+      attendanceMode !== AttendanceMode.QUIZ_BASED ||
+      !selectedCourse
+    ) {
       return;
     }
 
@@ -518,6 +614,18 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       (student) => student.id === studentId
     );
     if (existingStudent) {
+      return;
+    }
+
+    // Check if student is enrolled in this course
+    if (enrolledStudentIds.size === 0) {
+      await fetchEnrolledStudents(selectedCourse);
+    }
+
+    if (!enrolledStudentIds.has(studentId)) {
+      console.log(
+        `Student ${studentId} is not enrolled in course ${selectedCourse.code}, skipping quiz attendance`
+      );
       return;
     }
 
@@ -578,6 +686,51 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         return false; // Student already in record
       }
 
+      // Check if student is enrolled in this course
+      const courseId = recordData.courseId;
+      const courseCode = recordData.courseCode;
+
+      if (courseId || courseCode) {
+        // Fetch course details if needed
+        let course = null;
+        if (courseId) {
+          const courseDoc = await getDoc(doc(db, "courses", courseId));
+          if (courseDoc.exists()) {
+            course = {
+              id: courseId,
+              ...courseDoc.data(),
+            };
+          }
+        } else if (courseCode) {
+          // Try to find course by code
+          const coursesQuery = query(
+            collection(db, "courses"),
+            where("code", "==", courseCode)
+          );
+          const coursesSnapshot = await getDocs(coursesQuery);
+          if (!coursesSnapshot.empty) {
+            const courseDoc = coursesSnapshot.docs[0];
+            course = {
+              id: courseDoc.id,
+              ...courseDoc.data(),
+            };
+          }
+        }
+
+        if (course) {
+          // Check if student is enrolled
+          const tempEnrolledIds = new Set<string>();
+          await fetchEnrolledStudentsForSet(course, tempEnrolledIds);
+
+          if (!tempEnrolledIds.has(studentData.id)) {
+            console.log(
+              `Student ${studentData.id} is not enrolled in course, cannot add manually`
+            );
+            return false;
+          }
+        }
+      }
+
       // Add the student to the record
       await updateDoc(attendanceRef, {
         students: arrayUnion(studentData),
@@ -588,6 +741,68 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error("Error adding student to record:", error);
       throw error;
+    }
+  };
+
+  // Helper function to fetch enrolled students into a provided Set
+  const fetchEnrolledStudentsForSet = async (
+    course: any,
+    enrolledIds: Set<string>
+  ) => {
+    if (!course || !course.id) return;
+
+    try {
+      // APPROACH 1: Check enrollments collection
+      const enrollmentsQuery = query(
+        collection(db, "enrollments"),
+        where("courseId", "==", course.id)
+      );
+
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
+      enrollmentsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.studentId) {
+          enrolledIds.add(data.studentId);
+        }
+      });
+
+      // APPROACH 2: Check courseRegistrations collection
+      const registrationsQuery = query(
+        collection(db, "courseRegistrations"),
+        where("courseCode", "==", course.code)
+      );
+
+      const registrationsSnapshot = await getDocs(registrationsQuery);
+
+      registrationsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.studentId) {
+          enrolledIds.add(data.studentId);
+        }
+      });
+
+      // APPROACH 3: Check users collection for students with this course
+      const usersQuery = query(
+        collection(db, "users"),
+        where("userType", "==", "student")
+      );
+
+      const usersSnapshot = await getDocs(usersQuery);
+
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (
+          userData.courses &&
+          Array.isArray(userData.courses) &&
+          (userData.courses.includes(course.id) ||
+            userData.courses.includes(course.code))
+        ) {
+          enrolledIds.add(doc.id);
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching enrolled students for set:", error);
     }
   };
 
@@ -610,6 +825,45 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       const existingStudents = recordData.students || [];
       const existingIds = new Set(existingStudents.map((s: any) => s.id));
 
+      // Get course information from the record
+      const courseId = recordData.courseId;
+      const courseCode = recordData.courseCode;
+
+      // Fetch enrolled students for this course
+      const enrolledIds = new Set<string>();
+
+      if (courseId || courseCode) {
+        // Fetch course details if needed
+        let course = null;
+        if (courseId) {
+          const courseDoc = await getDoc(doc(db, "courses", courseId));
+          if (courseDoc.exists()) {
+            course = {
+              id: courseId,
+              ...courseDoc.data(),
+            };
+          }
+        } else if (courseCode) {
+          // Try to find course by code
+          const coursesQuery = query(
+            collection(db, "courses"),
+            where("code", "==", courseCode)
+          );
+          const coursesSnapshot = await getDocs(coursesQuery);
+          if (!coursesSnapshot.empty) {
+            const courseDoc = coursesSnapshot.docs[0];
+            course = {
+              id: courseDoc.id,
+              ...courseDoc.data(),
+            };
+          }
+        }
+
+        if (course) {
+          await fetchEnrolledStudentsForSet(course, enrolledIds);
+        }
+      }
+
       // Get online students from RTDB
       const usersRef = ref(rtdb, "users");
       const snapshot = await get(usersRef);
@@ -624,8 +878,12 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         const userId = childSnapshot.key;
         const userData = childSnapshot.val();
 
-        // Skip if not a student or already in attendance
-        if (userData.userType !== "student" || existingIds.has(userId)) {
+        // Skip if not a student, already in attendance, or not enrolled in the course
+        if (
+          userData.userType !== "student" ||
+          existingIds.has(userId) ||
+          (enrolledIds.size > 0 && !enrolledIds.has(userId))
+        ) {
           return;
         }
 

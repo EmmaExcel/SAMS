@@ -77,7 +77,6 @@ export default function Attendance() {
   const [sessionJustStarted, setSessionJustStarted] = useState(false);
 
   useEffect(() => {
-    // Check if this is a restored session (not one the user just started)
     if (isAttendanceActive && !sessionJustStarted) {
       Alert.alert(
         "Active Session Restored",
@@ -129,15 +128,40 @@ export default function Attendance() {
     points: number
   ) => {
     try {
+      if (!selectedCourse) {
+        Alert.alert("Error", "No course selected for the quiz");
+        return;
+      }
+
+      setLoading(true);
       await createQuizForAttendance(question, answer, points, selectedCourse);
       setShowQuizModal(false);
+
       Alert.alert(
         "Quiz Created",
-        `Attendance quiz has been created for ${selectedCourse?.code}. Students can now mark their attendance by answering the quiz.`
+        `Attendance quiz has been created for ${selectedCourse.code}. Students can now mark their attendance by answering the quiz.`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Suggest checking the quiz page
+              Alert.alert(
+                "Tip",
+                "Students should check their Quiz page to see and answer the attendance quiz.",
+                [{ text: "Got it" }]
+              );
+            },
+          },
+        ]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating attendance quiz:", error);
-      Alert.alert("Error", "Failed to create attendance quiz");
+      Alert.alert(
+        "Error",
+        "Failed to create attendance quiz: " + error.message
+      );
+    } finally {
+      setLoading(false);
     }
   };
 

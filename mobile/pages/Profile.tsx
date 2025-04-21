@@ -15,8 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
 import { useLocation } from "../context/locationContext";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../firebase";
 
 export default function Profile({ navigation }: { navigation: any }) {
   const { user, userProfile, logout } = useAuth();
@@ -41,19 +39,10 @@ export default function Profile({ navigation }: { navigation: any }) {
       .substring(0, 2);
   };
 
-  const navigateToAttendanceHistory = () => {
-    if (userProfile?.userType === "student") {
-      navigation.navigate("StudentAttendanceHistory");
-    } else {
-      navigation.navigate("AttendanceHistory");
-    }
-  };
-
   return (
     <View className="flex-1 bg-gray-50">
       <StatusBar backgroundColor="#5b2333" barStyle="light-content" />
 
-      {/* Header */}
       <LinearGradient
         colors={["#5b2333", "#7d3045"]}
         start={{ x: 0, y: 0 }}
@@ -74,12 +63,11 @@ export default function Profile({ navigation }: { navigation: any }) {
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
           <Text className="text-white text-xl font-bold">Profile</Text>
-          <View className="w-10 h-10" /> {/* Empty view for layout balance */}
+          <View className="w-10 h-10" />
         </View>
       </LinearGradient>
 
       <ScrollView className="flex-1 pt-8" showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
         <View className="bg-white -mt-5 mx-4 rounded-2xl p-5 shadow-sm">
           <View className="flex-row items-center">
             <View className="relative">
@@ -182,7 +170,6 @@ export default function Profile({ navigation }: { navigation: any }) {
           </View>
         </View>
 
-        {/* App Settings */}
         <View className="mt-6 mx-4">
           <Text className="text-gray-700 font-bold text-lg mb-2">
             App Settings
@@ -235,7 +222,6 @@ export default function Profile({ navigation }: { navigation: any }) {
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View className="mt-6 mx-4">
           <TouchableOpacity
             className="bg-white flex-row items-center justify-between p-4 rounded-xl shadow-sm mb-3"
@@ -260,7 +246,6 @@ export default function Profile({ navigation }: { navigation: any }) {
         </View>
       </ScrollView>
 
-      {/* Loading Overlay */}
       {loading && (
         <View className="absolute inset-0 bg-black/30 items-center justify-center">
           <View className="bg-white p-5 rounded-2xl items-center">
@@ -270,7 +255,6 @@ export default function Profile({ navigation }: { navigation: any }) {
         </View>
       )}
 
-      {/* Logout Confirmation Modal */}
       <Modal
         visible={showLogoutModal}
         transparent={true}
@@ -280,8 +264,8 @@ export default function Profile({ navigation }: { navigation: any }) {
         <View className="flex-1 bg-black/50 items-center justify-center p-5">
           <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
             <View className="items-center mb-4">
-              <View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-4">
-                <Ionicons name="log-out-outline" size={32} color="#F44336" />
+              <View className="w-16 h-16 rounded-full bg-primary/50 items-center justify-center mb-4">
+                <Ionicons name="log-out-outline" size={32} color="#fff" />
               </View>
               <Text className="text-xl font-bold text-gray-800">Logout</Text>
               <Text className="text-gray-600 text-center mt-2">
@@ -298,7 +282,7 @@ export default function Profile({ navigation }: { navigation: any }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 py-3 bg-red-500 rounded-xl ml-2 items-center"
+                className="flex-1 py-3 bg-primary rounded-xl ml-2 items-center"
                 onPress={handleLogout}
               >
                 <Text className="text-white font-medium">Logout</Text>

@@ -3,13 +3,21 @@ import { Text, View, TouchableOpacity, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/authContext";
 import { useAttendance } from "../context/attendanceContext";
-import { onValue, ref } from "firebase/database";
-import { rtdb } from "../firebase";
+import { onValue, ref, get } from "firebase/database";
+import { rtdb, db } from "../firebase";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { Avatar } from "react-native-elements";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  getDoc,
+  doc,
+} from "firebase/firestore";
 
 export default function StudentHomeScreen() {
   const { user, userProfile, logout } = useAuth();
@@ -18,6 +26,83 @@ export default function StudentHomeScreen() {
   const [activeAttendanceSessions, setActiveAttendanceSessions] = useState<
     any[]
   >([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(
+    new Set()
+  );
+  const [loading, setLoading] = useState(true);
+
+  // Fetch enrolled courses for the current student
+  useEffect(() => {
+    if (!user || userProfile?.userType !== "student") return;
+
+    const fetchEnrolledCourses = async () => {
+      try {
+        const studentId = user.uid;
+        const enrolledCoursesSet = new Set<string>();
+
+        // APPROACH 1: Check enrollments collection
+        const enrollmentsQuery = query(
+          collection(db, "enrollments"),
+          where("studentId", "==", studentId)
+        );
+
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
+        enrollmentsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.courseId) {
+            enrolledCoursesSet.add(data.courseId);
+
+            // Also fetch the course code and add it
+            getDoc(doc(db, "courses", data.courseId))
+              .then((courseDoc) => {
+                if (courseDoc.exists()) {
+                  const courseData = courseDoc.data();
+                  if (courseData.code) {
+                    enrolledCoursesSet.add(courseData.code);
+                  }
+                }
+              })
+              .catch((err) => console.error("Error fetching course:", err));
+          }
+        });
+
+        // APPROACH 2: Check courseRegistrations collection
+        const registrationsQuery = query(
+          collection(db, "courseRegistrations"),
+          where("studentId", "==", studentId)
+        );
+
+        const registrationsSnapshot = await getDocs(registrationsQuery);
+
+        registrationsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.courseId) {
+            enrolledCoursesSet.add(data.courseId);
+          }
+          if (data.courseCode) {
+            enrolledCoursesSet.add(data.courseCode);
+          }
+        });
+
+        // APPROACH 3: Check user's courses array
+        if (userProfile?.courses && Array.isArray(userProfile.courses)) {
+          userProfile.courses.forEach((course) => {
+            enrolledCoursesSet.add(course);
+          });
+        }
+
+        console.log(
+          `Found ${enrolledCoursesSet.size} enrolled courses for student`
+        );
+        setEnrolledCourses(enrolledCoursesSet);
+      } catch (error) {
+        console.error("Error fetching enrolled courses:", error);
+      }
+    };
+
+    fetchEnrolledCourses();
+  }, [user, userProfile]);
 
   useEffect(() => {
     if (!user) return;
@@ -27,6 +112,7 @@ export default function StudentHomeScreen() {
     const unsubscribe = onValue(sessionsRef, (snapshot) => {
       if (!snapshot.exists()) {
         setActiveAttendanceSessions([]);
+        setLoading(false);
         return;
       }
 
@@ -36,18 +122,45 @@ export default function StudentHomeScreen() {
         const sessionData = childSnapshot.val();
 
         if (sessionData.active) {
-          sessions.push({
-            id: childSnapshot.key,
-            ...sessionData,
-          });
+          // For lecturers, show all active sessions they created
+          if (
+            userProfile?.userType === "lecturer" &&
+            sessionData.lecturerId === user.uid
+          ) {
+            sessions.push({
+              id: childSnapshot.key,
+              ...sessionData,
+            });
+          }
+          // For students, only show sessions for courses they're enrolled in
+          else if (userProfile?.userType === "student") {
+            // Check if student is enrolled in this course
+            const isEnrolled =
+              (sessionData.courseId &&
+                enrolledCourses.has(sessionData.courseId)) ||
+              (sessionData.courseCode &&
+                enrolledCourses.has(sessionData.courseCode));
+
+            if (isEnrolled) {
+              sessions.push({
+                id: childSnapshot.key,
+                ...sessionData,
+              });
+            } else {
+              console.log(
+                `Skipping session for course ${sessionData.courseCode} - student not enrolled`
+              );
+            }
+          }
         }
       });
 
       setActiveAttendanceSessions(sessions);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, userProfile, enrolledCourses]);
 
   const handleAttendanceNavigation = () => {
     if (activeAttendanceSessions.length > 0) {
@@ -126,7 +239,7 @@ export default function StudentHomeScreen() {
     {
       icon: <Ionicons name="clipboard" size={24} color={PRIMARY_COLOR} />,
       title: "Attendance History",
-      onPress: () => navigation.navigate("AttendanceHistory"),
+      onPress: () => navigation.navigate("StudentAttendanceHistory"),
       userType: "student",
     },
     {
@@ -260,105 +373,41 @@ export default function StudentHomeScreen() {
                       </Text>
                     </View>
                   </View>
-
-                  <TouchableOpacity
-                    className="bg-[#5b2333]/90 py-3 rounded-lg mt-3 flex-row justify-center items-center"
-                    onPress={() => {
-                      if (
-                        session.mode === "quiz_based" &&
-                        userProfile?.userType === "student"
-                      ) {
-                        navigation.navigate("Quiz" as never);
-                      } else {
-                        navigation.navigate("Attendance" as never);
-                      }
-                    }}
-                  >
-                    <Ionicons
-                      name={
-                        session.mode === "quiz_based"
-                          ? "help-circle"
-                          : "clipboard"
-                      }
-                      size={18}
-                      color="white"
-                    />
-                    <Text className="text-white font-semibold text-center ml-2">
-                      {session.mode === "quiz_based" &&
-                      userProfile?.userType === "student"
-                        ? "Take Attendance Quiz"
-                        : "Resume Attendance Session"}
-                    </Text>
-                  </TouchableOpacity>
+                  {session.mode === "quiz_based" &&
+                    userProfile?.userType === "student" && (
+                      <TouchableOpacity
+                        className="bg-[#5b2333]/90 py-3 rounded-lg mt-3 flex-row justify-center items-center"
+                        onPress={() => {
+                          if (
+                            session.mode === "quiz_based" &&
+                            userProfile?.userType === "student"
+                          ) {
+                            navigation.navigate("Quiz" as never);
+                          }
+                        }}
+                      >
+                        <Ionicons
+                          name={
+                            session.mode === "quiz_based"
+                              ? "help-circle"
+                              : "clipboard"
+                          }
+                          size={18}
+                          color="white"
+                        />
+                        <Text className="text-white font-semibold text-center ml-2">
+                          {session.mode === "quiz_based" &&
+                            userProfile?.userType === "student" &&
+                            "Take Attendance Quiz"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                 </View>
               ))}
             </ScrollView>
           </View>
         )}
 
-        {/* <View className="gap-3">
-          {isAttendanceActive && (
-            <View className="bg-green-500 py-3 px-4 rounded-xl items-center mb-3">
-              <Text className="text-white font-semibold">
-                Attendance session is active!
-              </Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            className="bg-[#5b2333] py-4 rounded-xl"
-            onPress={() => navigation.navigate("MyStudents" as never)}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              My Students
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-[#5b2333] py-4 rounded-xl"
-            onPress={() => navigation.navigate("Attendance" as never)}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              Manage Attendance
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-[#5b2333] py-4 rounded-xl"
-            onPress={() => navigation.navigate("Map" as never)}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              View Attendance Map
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-[#5b2333] py-4 rounded-xl"
-            onPress={() => navigation.navigate("Quiz" as never)}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              View Active Quizzes
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-[#5b2333] py-4 rounded-xl"
-            onPress={() => navigation.navigate("AttendanceHistory" as never)}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              View Attendance History
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-red-500 py-4 rounded-xl mt-2"
-            onPress={logout}
-          >
-            <Text className="text-white text-center font-semibold text-base">
-              Logout
-            </Text>
-          </TouchableOpacity>
-        </View> */}
         <Text className="font-semibold text-lg mt-5">Quick Actions</Text>
         <View className="flex-row flex-wrap justify-between ">
           {QuickActions.map((action, index) => (
@@ -380,6 +429,28 @@ export default function StudentHomeScreen() {
             </React.Fragment>
           ))}
         </View>
+
+        {loading && (
+          <View className="py-8 items-center">
+            <Text className="text-gray-500">Loading sessions...</Text>
+          </View>
+        )}
+
+        {userProfile?.userType === "student" &&
+          !loading &&
+          activeAttendanceSessions.length === 0 &&
+          enrolledCourses.size > 0 && (
+            <View className="bg-white rounded-xl p-6 my-4 items-center">
+              <Ionicons name="calendar-outline" size={40} color="#9ca3af" />
+              <Text className="text-base text-gray-700 text-center mt-3 font-medium">
+                No Active Sessions
+              </Text>
+              <Text className="text-sm text-gray-500 text-center mt-1">
+                There are no active attendance sessions for your courses right
+                now.
+              </Text>
+            </View>
+          )}
       </ScrollView>
     </View>
   );

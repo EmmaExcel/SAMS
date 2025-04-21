@@ -6,8 +6,9 @@ import React, {
   useRef,
 } from "react";
 import { Alert } from "react-native";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import QuizService from "../services/QuizService";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 interface QuizContextType {
   activeQuizzes: any[];
@@ -98,6 +99,10 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!currentPopupQuiz) return;
 
     try {
+      console.log(
+        `Submitting answer for quiz ${currentPopupQuiz.id}: "${answer}"`
+      );
+
       const isCorrect = await QuizService.submitQuizAnswer(
         currentPopupQuiz.id,
         answer
@@ -127,7 +132,6 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
       Alert.alert("Error", "Failed to submit your answer. Please try again.");
     }
   };
-
   const closeQuizPopup = () => {
     setShowQuizPopup(false);
     setCurrentPopupQuiz(null);
@@ -153,6 +157,10 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
     course: any
   ): Promise<string> => {
     try {
+      if (!course) {
+        throw new Error("Course information is required for attendance quiz");
+      }
+
       // Default time limit of 5 minutes for attendance quizzes
       const timeLimit = 5;
       const quizId = await QuizService.createQuiz(
@@ -162,16 +170,95 @@ export const QuizProvider: React.FC<{ children: React.ReactNode }> = ({
         points,
         course
       );
+      // Get all students enrolled in this course
+      const enrolledStudentIds = await fetchStudentsForCourse(course);
 
-      // Get all students in the course
-      // This would need to be implemented based on your data structure
-      // For example, querying users who have this course in their courses array
+      if (enrolledStudentIds.length > 0) {
+        // Assign the quiz to all enrolled students
+        await QuizService.assignQuizToStudents(quizId, enrolledStudentIds);
+        console.log(
+          `Quiz ${quizId} assigned to ${enrolledStudentIds.length} students`
+        );
+      } else {
+        console.warn("No enrolled students found for this course");
+      }
 
-      // For now, we'll just return the quiz ID
       return quizId;
     } catch (error) {
       console.error("Error creating quiz for attendance:", error);
       throw error;
+    }
+  };
+  // Helper function to fetch students enrolled in a course
+  const fetchStudentsForCourse = async (course: any): Promise<string[]> => {
+    try {
+      const enrolledStudentIds: string[] = [];
+
+      // APPROACH 1: Check enrollments collection
+      if (course.id) {
+        const enrollmentsQuery = query(
+          collection(db, "enrollments"),
+          where("courseId", "==", course.id)
+        );
+
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+
+        enrollmentsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.studentId) {
+            enrolledStudentIds.push(data.studentId);
+          }
+        });
+      }
+
+      // APPROACH 2: Check courseRegistrations collection
+      if (course.code) {
+        const registrationsQuery = query(
+          collection(db, "courseRegistrations"),
+          where("courseCode", "==", course.code)
+        );
+
+        const registrationsSnapshot = await getDocs(registrationsQuery);
+
+        registrationsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.studentId && !enrolledStudentIds.includes(data.studentId)) {
+            enrolledStudentIds.push(data.studentId);
+          }
+        });
+      }
+
+      // APPROACH 3: Check users collection for students with this course
+      const usersQuery = query(
+        collection(db, "users"),
+        where("userType", "==", "student")
+      );
+
+      const usersSnapshot = await getDocs(usersQuery);
+
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (
+          userData.courses &&
+          Array.isArray(userData.courses) &&
+          ((course.id && userData.courses.includes(course.id)) ||
+            (course.code && userData.courses.includes(course.code)))
+        ) {
+          if (!enrolledStudentIds.includes(doc.id)) {
+            enrolledStudentIds.push(doc.id);
+          }
+        }
+      });
+
+      console.log(
+        `Found ${enrolledStudentIds.length} enrolled students for course ${
+          course.code || course.id
+        }`
+      );
+      return enrolledStudentIds;
+    } catch (error) {
+      console.error("Error fetching students for course:", error);
+      return [];
     }
   };
 

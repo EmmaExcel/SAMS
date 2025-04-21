@@ -113,6 +113,8 @@ class QuizService {
       }
 
       const studentId = auth.currentUser.uid;
+
+      // Get the quiz data
       const quizRef = ref(rtdb, `quizzes/${quizId}`);
       const quizSnapshot = await get(quizRef);
 
@@ -141,58 +143,137 @@ class QuizService {
         points: isCorrect ? pointsValue : 0, // Award points if correct
       });
 
-      // Check for active attendance sessions
+      console.log(
+        `Student ${studentId} submitted answer for quiz ${quizId}. Correct: ${isCorrect}`
+      );
+
+      // If answer is correct, add student to attendance session
       if (isCorrect) {
+        // Get student data first to include in attendance record
+        const userRef = ref(rtdb, `users/${studentId}`);
+        const userSnapshot = await get(userRef);
+
+        if (!userSnapshot.exists()) {
+          console.error(`User data not found for student ${studentId}`);
+          return isCorrect;
+        }
+
+        const userData = userSnapshot.val();
+
+        // Find active attendance sessions for this course
         const sessionsRef = ref(rtdb, "attendance_sessions");
         const sessionsSnapshot = await get(sessionsRef);
 
-        if (sessionsSnapshot.exists()) {
-          // Find active sessions with quiz-based mode
-          sessionsSnapshot.forEach((sessionSnapshot) => {
-            const sessionData = sessionSnapshot.val();
+        if (!sessionsSnapshot.exists()) {
+          console.log("No active attendance sessions found");
+          return isCorrect;
+        }
 
-            // Check if this session is for the same course as the quiz (if course info exists)
-            const isSameCourse =
-              !quizData.courseId ||
-              !sessionData.courseId ||
-              quizData.courseId === sessionData.courseId;
+        let sessionFound = false;
 
-            if (
-              sessionData.active &&
-              sessionData.mode === "quiz_based" &&
-              isSameCourse
-            ) {
-              // Add student to this attendance session
-              const studentRef = ref(
-                rtdb,
-                `attendance_sessions/${sessionSnapshot.key}/students/${studentId}`
-              );
+        // Look for matching sessions
+        sessionsSnapshot.forEach((sessionSnapshot) => {
+          const sessionData = sessionSnapshot.val();
+          const sessionId = sessionSnapshot.key;
 
-              // Get student data
-              const userRef = ref(rtdb, `users/${studentId}`);
-              get(userRef).then((userSnapshot) => {
-                if (userSnapshot.exists()) {
-                  const userData = userSnapshot.val();
+          // Check if session is active and quiz-based
+          if (!sessionData.active || sessionData.mode !== "quiz_based") {
+            return;
+          }
 
-                  set(studentRef, {
-                    name: userData.name || userData.email || "Unknown",
-                    email: userData.email || "Unknown",
-                    studentId:
-                      userData.matricNumber || userData.studentId || "Unknown",
-                    timestamp: new Date().toISOString(),
-                    method: "quiz",
-                    quizId: quizId,
-                  });
-                }
-              });
-            }
+          // Check if this session is for the same course as the quiz
+          const isSameCourse =
+            (quizData.courseId &&
+              sessionData.courseId &&
+              quizData.courseId === sessionData.courseId) ||
+            (quizData.courseCode &&
+              sessionData.courseCode &&
+              quizData.courseCode === sessionData.courseCode);
+
+          if (!isSameCourse) {
+            console.log(
+              `Session ${sessionId} course doesn't match quiz course`
+            );
+            return;
+          }
+
+          console.log(
+            `Adding student ${studentId} to attendance session ${sessionId}`
+          );
+          sessionFound = true;
+
+          // Add student to this attendance session
+          const studentRef = ref(
+            rtdb,
+            `attendance_sessions/${sessionId}/students/${studentId}`
+          );
+
+          // Add student data to attendance
+          set(studentRef, {
+            id: studentId,
+            name: userData.name || userData.email || "Unknown",
+            email: userData.email || "Unknown",
+            studentId: userData.matricNumber || userData.studentId || "Unknown",
+            timestamp: new Date().toISOString(),
+            method: "quiz",
+            quizId: quizId,
           });
+        });
+
+        if (!sessionFound) {
+          console.log(
+            `No matching active quiz-based attendance session found for quiz ${quizId}`
+          );
         }
       }
 
       return isCorrect;
     } catch (error) {
       console.error("Error submitting quiz answer:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Assign a quiz to students who are in range
+   * @param {string} quizId - The ID of the quiz to assign
+   * @param {Array} studentIds - Array of student IDs to assign the quiz to
+   * @returns {Promise<void>}
+   */
+  static async assignQuizToStudents(quizId, studentIds) {
+    try {
+      if (!auth.currentUser) {
+        throw new Error("User not authenticated");
+      }
+
+      const assignmentsRef = ref(rtdb, `quiz_assignments/${quizId}`);
+      const assignments = {};
+
+      // Get the quiz data to include in assignments
+      const quizRef = ref(rtdb, `quizzes/${quizId}`);
+      const quizSnapshot = await get(quizRef);
+      if (!quizSnapshot.exists()) {
+        throw new Error("Quiz not found");
+      }
+
+      const quizData = quizSnapshot.val();
+
+      // Create assignment for each student
+      for (const studentId of studentIds) {
+        assignments[studentId] = {
+          assigned: true,
+          assignedAt: serverTimestamp(),
+          completed: false,
+          marked: false,
+          courseId: quizData.courseId || null,
+          courseCode: quizData.courseCode || null,
+        };
+      }
+
+      await set(assignmentsRef, assignments);
+      console.log(`Quiz ${quizId} assigned to ${studentIds.length} students`);
+    } catch (error) {
+      console.error("Error assigning quiz to students:", error);
       throw error;
     }
   }
@@ -223,20 +304,7 @@ class QuizService {
 
       // For each quiz ID, check if the student has an assignment
       for (const quizId of quizIds) {
-        // First check if the student has an assignment for this quiz
-        const assignmentRef = ref(
-          rtdb,
-          `quiz_assignments/${quizId}/${studentId}`
-        );
-        const assignmentSnapshot = await get(assignmentRef);
-
-        if (!assignmentSnapshot.exists()) continue;
-
-        const assignment = assignmentSnapshot.val();
-        // Skip if not assigned or already completed
-        if (!assignment.assigned || assignment.completed) continue;
-
-        // Now get the quiz data
+        // First check if the quiz is active and not expired
         const quizData = quizzesSnapshot.val()[quizId];
         if (!quizData || !quizData.active) continue;
 
@@ -244,21 +312,35 @@ class QuizService {
         const expiresAt = new Date(quizData.expiresAt);
         if (expiresAt < now) continue;
 
-        // Add to active quizzes
-        activeQuizzes.push({
-          id: quizId,
-          ...quizData,
-          assignedAt: assignment.assignedAt,
-        });
+        // Now check if the student has an assignment for this quiz
+        const assignmentRef = ref(
+          rtdb,
+          `quiz_assignments/${quizId}/${studentId}`
+        );
+        const assignmentSnapshot = await get(assignmentRef);
+
+        // If student has an assignment and hasn't completed it yet
+        if (assignmentSnapshot.exists()) {
+          const assignment = assignmentSnapshot.val();
+          // Skip if not assigned or already completed
+          if (!assignment.assigned || assignment.completed) continue;
+
+          // Add to active quizzes
+          activeQuizzes.push({
+            id: quizId,
+            ...quizData,
+            assignedAt: assignment.assignedAt,
+          });
+        }
       }
 
+      console.log(`Found ${activeQuizzes.length} active quizzes for student`);
       return activeQuizzes;
     } catch (error) {
       console.error("Error getting active quizzes for student:", error);
       throw error; // Throw the error instead of returning empty array to show the actual error
     }
   }
-
   /**
    * Get quiz results for a lecturer
    * @param {string} quizId - The ID of the quiz

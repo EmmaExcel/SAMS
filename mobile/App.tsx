@@ -29,7 +29,8 @@ export default function App() {
             <QuizProvider>
               <AppNavigator />
               {/* Global Quiz Popup that can appear on any screen */}
-              <QuizPopup />
+              {/* <QuizPopup /> */}
+              {/* <QuizPopup /> */}
             </QuizProvider>
           </AttendanceProvider>
         </LocationProvider>

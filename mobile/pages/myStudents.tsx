@@ -5,12 +5,11 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
-  Alert,
   StatusBar,
   Image,
   RefreshControl,
   TextInput,
+  ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/authContext";
@@ -23,9 +22,8 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 
 export default function MyStudents() {
   const { userProfile } = useAuth();
@@ -39,6 +37,7 @@ export default function MyStudents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVisible, setFilterVisible] = useState(false);
   const [sortOption, setSortOption] = useState("name"); // name, attendance, id
+  const [totalClassesHeld, setTotalClassesHeld] = useState(0);
 
   useEffect(() => {
     const fetchLecturerCourses = async () => {
@@ -83,6 +82,19 @@ export default function MyStudents() {
       try {
         setLoading(true);
         setDebugInfo(`Fetching students for course: ${selectedCourse.code}`);
+
+        // First, get the total number of classes held for this course
+        const attendanceQuery = query(
+          collection(db, "attendance"),
+          where("courseCode", "==", selectedCourse.code)
+        );
+
+        const attendanceSnapshot = await getDocs(attendanceQuery);
+        const totalClasses = attendanceSnapshot.size;
+        setTotalClassesHeld(totalClasses);
+        console.log(
+          `Total classes held for ${selectedCourse.code}: ${totalClasses}`
+        );
 
         // APPROACH 1: Try to find students from users collection who have this course in their courses array
         const usersQuery = query(
@@ -214,6 +226,7 @@ export default function MyStudents() {
           }
         }
 
+        // Calculate attendance count for each student
         for (let i = 0; i < studentsData.length; i++) {
           const student = studentsData[i];
 
@@ -230,7 +243,11 @@ export default function MyStudents() {
               const attendanceData = doc.data();
               const students = attendanceData.students || [];
 
-              if (students.some((s: any) => s.id === student.id)) {
+              if (
+                students.some(
+                  (s: any) => s.id === student.id || s.studentId === student.id
+                )
+              ) {
                 attendanceCount++;
               }
             });
@@ -282,15 +299,13 @@ export default function MyStudents() {
   };
 
   const handleStudentPress = (student: any) => {
-    navigation.navigate("StudentDetails", { student });
+    navigation.navigate("StudentDetails", { student, totalClassesHeld });
   };
 
   const onRefresh = () => {
     setRefreshing(true);
     if (selectedCourse) {
-      const fetchStudentsForCourse = async () => {
-        fetchStudentsForCourse();
-      };
+      const fetchStudentsForCourse = async () => {};
       fetchStudentsForCourse();
     } else {
       setRefreshing(false);
@@ -306,11 +321,12 @@ export default function MyStudents() {
     );
   });
 
-  const renderCourseTab = (course: any) => {
+  const renderCourseTab = (course: any, index: any) => {
     const isSelected = selectedCourse && selectedCourse.id === course.id;
 
     return (
       <TouchableOpacity
+        key={index}
         className={`px-3 py-3 mx-1.5 rounded-xl ${
           isSelected ? "bg-[#5b2333]/80" : "bg-white border border-gray-200"
         }`}
@@ -349,11 +365,11 @@ export default function MyStudents() {
       .toUpperCase()
       .substring(0, 2);
 
-    // Calculate attendance percentage
-    const totalClasses = 12;
-    const attendancePercentage = Math.round(
-      (item.attendanceCount / totalClasses) * 100
-    );
+    // Calculate attendance percentage based on actual classes held
+    const attendancePercentage =
+      totalClassesHeld > 0
+        ? Math.round((item.attendanceCount / totalClassesHeld) * 100)
+        : 0;
 
     return (
       <TouchableOpacity
@@ -405,7 +421,9 @@ export default function MyStudents() {
               }}
             >
               <Text className="text-xl font-bold">{item.attendanceCount}</Text>
-              <Text className="text-xs text-gray-500">classes</Text>
+              <Text className="text-xs text-gray-500">
+                {totalClassesHeld > 0 ? `${attendancePercentage}%` : "N/A"}
+              </Text>
             </View>
           </View>
         </View>
@@ -434,20 +452,20 @@ export default function MyStudents() {
         colors={["#5b2333", "#7d3045"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className="pt-12 pb-4 px-4"
         style={{
-          padding: 10,
           paddingTop: 50,
+          paddingBottom: 8,
+          paddingHorizontal: 16,
           borderBottomLeftRadius: 20,
           borderBottomRightRadius: 20,
         }}
       >
         <View className="flex-row items-center justify-between mb-4">
           <TouchableOpacity
-            className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
+            className="w-8 h-8 items-center justify-center rounded-full bg-white/20"
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={24} color="white" />
+            <Ionicons name="chevron-back" size={20} color="white" />
           </TouchableOpacity>
 
           <Text className="text-white text-xl font-bold">My Students</Text>
@@ -456,12 +474,11 @@ export default function MyStudents() {
             className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
             onPress={() => setFilterVisible(!filterVisible)}
           >
-            <Ionicons name="options-outline" size={20} color="white" />
+            <Ionicons name="options-outline" size={24} color="white" />
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2 mb-2">
+        <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2 mb-4">
           <Ionicons name="search-outline" size={20} color="white" />
           <TextInput
             className="flex-1 ml-2 text-white"
@@ -477,146 +494,109 @@ export default function MyStudents() {
           )}
         </View>
 
-        {filterVisible && (
-          <View className="bg-white/10 rounded-xl p-3 mb-3">
-            <Text className="text-white text-sm mb-2">Sort by:</Text>
-            <View className="flex-row">
-              <TouchableOpacity
-                className={`px-3 py-1.5 rounded-full mr-2 ${
-                  sortOption === "name" ? "bg-white" : "bg-white/20"
-                }`}
-                onPress={() => {
-                  setSortOption("name");
-                  setStudents([...sortStudents(students, "name")]);
-                }}
-              >
-                <Text
-                  className={
-                    sortOption === "name"
-                      ? "text-[#5b2333] font-medium"
-                      : "text-white"
-                  }
-                >
-                  Name
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`px-3 py-1.5 rounded-full mr-2 ${
-                  sortOption === "attendance" ? "bg-white" : "bg-white/20"
-                }`}
-                onPress={() => {
-                  setSortOption("attendance");
-                  setStudents([...sortStudents(students, "attendance")]);
-                }}
-              >
-                <Text
-                  className={
-                    sortOption === "attendance"
-                      ? "text-[#5b2333] font-medium"
-                      : "text-white"
-                  }
-                >
-                  Attendance
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`px-3 py-1.5 rounded-full ${
-                  sortOption === "id" ? "bg-white" : "bg-white/20"
-                }`}
-                onPress={() => {
-                  setSortOption("id");
-                  setStudents([...sortStudents(students, "id")]);
-                }}
-              >
-                <Text
-                  className={
-                    sortOption === "id"
-                      ? "text-[#5b2333] font-medium"
-                      : "text-white"
-                  }
-                >
-                  ID
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        {/* Course Tabs */}
       </LinearGradient>
-
-      {/* Course Tabs */}
-      {courses.length > 0 && (
-        <View className="bg-gray-50 py-3">
-          <FlatList
-            horizontal
-            data={courses}
-            renderItem={({ item }) => renderCourseTab(item)}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 12 }}
-          />
-        </View>
-      )}
-
-      {/* Selected Course Info */}
-      {selectedCourse && (
-        <View className="px-4 py-3 bg-white border-b border-gray-200">
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-lg font-bold text-gray-800">
-                {selectedCourse.title}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="my-2 bg-white"
+      >
+        {courses.map((course, index) => renderCourseTab(course, index))}
+      </ScrollView>
+      {/* Filter Options */}
+      {filterVisible && (
+        <View className="bg-white mx-4 my-2 p-4 rounded-xl shadow-sm ">
+          <Text className="text-gray-800 font-bold mb-2">Sort By:</Text>
+          <View className="flex-row flex-wrap">
+            <TouchableOpacity
+              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                sortOption === "name"
+                  ? "bg-[#5b2333] text-white"
+                  : "bg-gray-100"
+              }`}
+              onPress={() => {
+                setSortOption("name");
+                sortStudents(students, "name");
+              }}
+            >
+              <Text
+                className={
+                  sortOption === "name" ? "text-white" : "text-gray-800"
+                }
+              >
+                Name
               </Text>
-              <Text className="text-sm text-gray-600">
-                Level: {selectedCourse.level} •{" "}
-                {selectedCourse.department || "Department N/A"}
-              </Text>
-            </View>
+            </TouchableOpacity>
 
-            {/* <View className="bg-[#5b2333]/10 px-3 py-1 rounded-lg">
-              <Text className="text-[#5b2333] font-medium">
-                {filteredStudents.length} Students
+            <TouchableOpacity
+              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                sortOption === "attendance"
+                  ? "bg-[#5b2333] text-white"
+                  : "bg-gray-100"
+              }`}
+              onPress={() => {
+                setSortOption("attendance");
+                sortStudents(students, "attendance");
+              }}
+            >
+              <Text
+                className={
+                  sortOption === "attendance" ? "text-white" : "text-gray-800"
+                }
+              >
+                Attendance
               </Text>
-            </View> */}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                sortOption === "id" ? "bg-[#5b2333] text-white" : "bg-gray-100"
+              }`}
+              onPress={() => {
+                setSortOption("id");
+                sortStudents(students, "id");
+              }}
+            >
+              <Text
+                className={sortOption === "id" ? "text-white" : "text-gray-800"}
+              >
+                Student ID
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* Stats Card */}
-      {selectedCourse && filteredStudents.length > 0 && (
-        <View className="mx-4 my-3 bg-white rounded-xl p-4 shadow-sm">
-          <Text className="text-gray-800 font-bold mb-3">
-            Attendance Overview
+      {/* Course Info */}
+      {selectedCourse && (
+        <View className="bg-white mx-4 mt-2 p-4 rounded-xl shadow-sm mb-2">
+          <Text className="text-lg font-bold text-gray-800 mb-1">
+            {selectedCourse.title || "Course Title"}
+          </Text>
+          <Text className="text-sm text-gray-600 mb-3">
+            {selectedCourse.code} • Level {selectedCourse.level || "N/A"}
           </Text>
 
-          <View className="flex-row justify-between mb-2">
+          <View className="flex-row justify-between">
             <View className="items-center">
               <Text className="text-2xl font-bold text-[#5b2333]">
-                {filteredStudents.length}
+                {students.length}
               </Text>
-              <Text className="text-xs text-gray-500">Total Students</Text>
+              <Text className="text-xs text-gray-500">Students</Text>
             </View>
 
             <View className="items-center">
-              <Text className="text-2xl font-bold text-[#4CAF50]">
-                {Math.round(
-                  filteredStudents.reduce(
-                    (sum, student) => sum + student.attendanceCount,
-                    0
-                  ) / filteredStudents.length
-                )}
+              <Text className="text-2xl font-bold text-[#5b2333]">
+                {totalClassesHeld}
               </Text>
-              <Text className="text-xs text-gray-500">Avg. Attendance</Text>
+              <Text className="text-xs text-gray-500">Classes Held</Text>
             </View>
 
             <View className="items-center">
-              <Text className="text-2xl font-bold text-[#FFC107]">
-                {filteredStudents.reduce(
-                  (max, student) => Math.max(max, student.attendanceCount),
-                  0
-                )}
+              <Text className="text-2xl font-bold text-[#5b2333]">
+                {students.filter((s) => s.attendanceCount > 0).length}
               </Text>
-              <Text className="text-xs text-gray-500">Max Classes</Text>
+              <Text className="text-xs text-gray-500">Active Students</Text>
             </View>
           </View>
         </View>
@@ -626,7 +606,7 @@ export default function MyStudents() {
 
   const renderEmptyState = () => (
     <View className="flex-1 justify-center items-center p-8">
-      <View className="bg-white p-8 rounded-2xl shadow-md items-center max-w-[350px]">
+      <View className="bg-white p-8 rounded-2xl shadow-sm items-center max-w-[350px]">
         <Ionicons
           name="people-outline"
           size={64}
@@ -635,114 +615,61 @@ export default function MyStudents() {
         />
 
         <Text className="text-xl font-bold text-gray-800 text-center mt-4 mb-2">
-          {selectedCourse ? "No Students Found" : "No Courses Available"}
+          No Students Found
         </Text>
 
         <Text className="text-gray-500 text-center mb-6">
           {selectedCourse
-            ? "There are no students with the name registered for this course yet."
-            : "You don't have any courses set up. Add courses to manage your students."}
+            ? "No students are enrolled in this course yet."
+            : "Please select a course to view enrolled students."}
         </Text>
 
-        {/* <TouchableOpacity
+        <TouchableOpacity
           className="bg-[#5b2333] px-6 py-3 rounded-xl w-full items-center"
-          onPress={() =>
-            navigation.navigate(
-              selectedCourse
-                ? ("Dashboard" as never)
-                : ("LecturerProfileSetup" as never)
-            )
-          }
+          onPress={() => navigation.navigate("Home" as never)}
         >
-          <Text className="text-white font-semibold">
-            {selectedCourse ? "Go to Dashboard" : "Add Courses"}
-          </Text>
-        </TouchableOpacity> */}
-      </View>
-
-      {__DEV__ && debugInfo && (
-        <Text className="text-xs text-red-400 mt-6 p-3 bg-red-50 rounded-lg">
-          {debugInfo}
-        </Text>
-      )}
-    </View>
-  );
-
-  const renderLoadingState = () => (
-    <View className="flex-1 justify-center items-center">
-      <View className="bg-white p-8 rounded-2xl shadow-md items-center">
-        <ActivityIndicator size="large" color="#5b2333" />
-        <Text className="text-gray-600 mt-4 font-medium">
-          {selectedCourse
-            ? `Loading students for ${selectedCourse.code}...`
-            : "Loading your courses..."}
-        </Text>
+          <Text className="text-white font-semibold">Go to Dashboard</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
-    <View
-      className="flex-1 bg-gray-50"
-      style={{ paddingTop: StatusBar.currentHeight }}
-    >
+    <View className="flex-1 bg-gray-50">
       <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
-
-      {loading && !selectedCourse ? (
-        renderLoadingState()
-      ) : (
-        <FlatList
-          data={filteredStudents}
-          renderItem={renderStudentItem}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={!loading ? renderEmptyState : null}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#5b2333"]}
-              tintColor="#5b2333"
-            />
-          }
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 20,
-          }}
-          ListFooterComponent={
-            loading && selectedCourse ? (
-              <ActivityIndicator
-                size="small"
-                color="#5b2333"
-                className="py-4"
-              />
-            ) : filteredStudents.length > 0 ? (
-              <View className="py-4 items-center">
-                <Text className="text-gray-400 text-xs">
-                  {filteredStudents.length} students in total
-                </Text>
-              </View>
-            ) : null
-          }
-        />
-      )}
-
-      {/* Quick Action Button */}
-      {/* {selectedCourse && (
-        <TouchableOpacity
-          className="absolute bottom-32 right-6 w-14 h-14 rounded-full bg-[#5b2333] items-center justify-center shadow-lg"
-          style={{
-            shadowColor: "#5b2333",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 6,
-            elevation: 8,
-          }}
-          onPress={() => navigation.navigate("Attendance" as never)}
-        >
-          <Ionicons name="checkmark-circle-outline" size={28} color="white" />
-        </TouchableOpacity>
-      )} */}
+      {renderHeader()}
+      <FlatList
+        data={filteredStudents}
+        keyExtractor={(item) => item.id}
+        renderItem={renderStudentItem}
+        ListEmptyComponent={!loading ? renderEmptyState : null}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#5b2333"]}
+            tintColor="#5b2333"
+          />
+        }
+        ListFooterComponent={
+          loading ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color="#5b2333" />
+              <Text className="mt-4 text-gray-500">Loading students...</Text>
+            </View>
+          ) : filteredStudents.length > 0 ? (
+            <View className="py-4 items-center">
+              <Text className="text-gray-400 text-xs">
+                {filteredStudents.length} students enrolled
+              </Text>
+            </View>
+          ) : null
+        }
+      />
     </View>
   );
 }

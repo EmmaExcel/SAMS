@@ -197,7 +197,7 @@ export default function StudentProfileSetup() {
 
   return (
     <SafeAreaView className="bg-gray-50 flex-1">
-      <ScrollView className="p-6">
+      <ScrollView className="p-6 ">
         <View className="mb-8">
           <Text className="text-3xl font-semibold text-center text-gray-800 mb-3">
             Student Profile Setup
@@ -355,7 +355,9 @@ export default function StudentProfileSetup() {
             </Text>
           )}
         </View>
+      </ScrollView>
 
+      <View className="flex-row justify-between items-center mt-7">
         {loading ? (
           <ActivityIndicator size="large" color={PRIMARY_COLOR} />
         ) : (
@@ -368,7 +370,7 @@ export default function StudentProfileSetup() {
             </Text>
           </TouchableOpacity>
         )}
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
