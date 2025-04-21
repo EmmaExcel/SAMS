@@ -54,6 +54,8 @@ export default function Attendance() {
     saveAttendance,
     setAttendanceMode,
     setAttendanceDuration,
+    attendanceSessionId,
+    setStudentsInAttendance,
     timeRemaining,
   } = useAttendance();
   const [studentsInRadius, setStudentsInRadius] = useState([]);
@@ -121,6 +123,93 @@ export default function Attendance() {
       if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
     };
   }, [isAttendanceActive, timeRemaining]);
+
+  // Add this useEffect to monitor students in attendance sessions
+  useEffect(() => {
+    if (!isAttendanceActive || !attendanceSessionId) {
+      return;
+    }
+
+    console.log(
+      `Setting up listener for students in session ${attendanceSessionId}`
+    );
+
+    // Listen for changes to the students in this session
+    const studentsRef = ref(
+      rtdb,
+      `attendance_sessions/${attendanceSessionId}/students`
+    );
+
+    const unsubscribe = onValue(studentsRef, (snapshot) => {
+      if (!snapshot.exists()) {
+        console.log("No students in attendance session yet");
+        return;
+      }
+
+      const studentsData: any[] = [];
+
+      snapshot.forEach((childSnapshot) => {
+        const studentId = childSnapshot.key;
+        const studentData = childSnapshot.val();
+
+        studentsData.push({
+          id: studentId,
+          ...studentData,
+        });
+      });
+
+      console.log(
+        `Found ${studentsData.length} students in attendance session`
+      );
+      setStudentsInAttendance(studentsData);
+    });
+
+    return () => unsubscribe();
+  }, [isAttendanceActive, attendanceSessionId]);
+  const debugAttendanceSession = async () => {
+    if (!attendanceSessionId) {
+      console.log("No active attendance session to debug");
+      return;
+    }
+
+    try {
+      const sessionRef = ref(
+        rtdb,
+        `attendance_sessions/${attendanceSessionId}`
+      );
+      const snapshot = await get(sessionRef);
+
+      if (!snapshot.exists()) {
+        console.log(`Attendance session ${attendanceSessionId} not found`);
+        return;
+      }
+
+      const sessionData = snapshot.val();
+      console.log("Active attendance session data:", sessionData);
+
+      // Check students in this session
+      if (sessionData.students) {
+        const studentCount = Object.keys(sessionData.students).length;
+        console.log(`Session has ${studentCount} students`);
+        console.log("Students:", sessionData.students);
+      } else {
+        console.log("No students in this session yet");
+      }
+    } catch (error) {
+      console.error("Error debugging attendance session:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isAttendanceActive && attendanceSessionId) {
+      const interval = setInterval(() => {
+        debugAttendanceSession();
+      }, 30000); // Debug every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [isAttendanceActive, attendanceSessionId]);
+
   // Function to create and assign a quiz to students in range
   const handleCreateQuiz = async (
     question: string,

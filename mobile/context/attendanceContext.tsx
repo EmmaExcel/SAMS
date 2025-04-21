@@ -51,6 +51,7 @@ interface AttendanceContextType {
   setAttendanceDuration: (minutes: number) => void;
   setStudentsInAttendance: (students: any[]) => void;
   setAttendanceTimer: (timer: NodeJS.Timeout | null) => void;
+  attendanceSessionId: any;
   setAttendanceSessionId: (sessionId: string | null) => void;
   addStudentToRecord: (recordId: string, studentData: any) => Promise<boolean>;
   scanForStudentsToAdd: (recordId: string) => Promise<number>;
@@ -947,6 +948,7 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
         setStudentsInAttendance,
         setAttendanceTimer,
         setAttendanceSessionId,
+        attendanceSessionId,
         addStudentToRecord,
         scanForStudentsToAdd,
         timeRemaining,
