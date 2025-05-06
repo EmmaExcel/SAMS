@@ -38,6 +38,7 @@ const TabNavigator = () => {
           elevation: 10,
           paddingBottom: 5,
           paddingTop: 5,
+          display: "none",
         },
         tabBarIcon: ({ focused, color, size }: any) => {
           let iconName: string = "";

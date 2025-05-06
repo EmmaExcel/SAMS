@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { Avatar } from "react-native-elements";
+import { Avatar, Icon } from "react-native-elements";
 import {
   collection,
   query,
@@ -18,8 +18,21 @@ import {
   getDoc,
   doc,
 } from "firebase/firestore";
+import {
+  Body,
+  ButtonText,
+  Caption,
+  Heading1,
+  Heading2,
+  Heading3,
+  Heading4,
+  Subtitle,
+} from "../component/ui/Typography";
+import { useTheme } from "../context/themeContext";
+import DarkButton from "../component/ui/DarkButton";
 
 export default function StudentHomeScreen() {
+  const { theme } = useTheme();
   const { user, userProfile, logout } = useAuth();
   const { isAttendanceActive } = useAttendance();
   const navigation = useNavigation();
@@ -49,13 +62,13 @@ export default function StudentHomeScreen() {
         const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
 
         enrollmentsSnapshot.forEach((doc) => {
-          const data = doc.data();
+          const data: any = doc.data();
           if (data.courseId) {
             enrolledCoursesSet.add(data.courseId);
 
             // Also fetch the course code and add it
             getDoc(doc(db, "courses", data.courseId))
-              .then((courseDoc) => {
+              .then((courseDoc: any) => {
                 if (courseDoc.exists()) {
                   const courseData = courseDoc.data();
                   if (courseData.code) {
@@ -225,232 +238,372 @@ export default function StudentHomeScreen() {
   const PRIMARY_COLOR = "#f5f5f5";
   const QuickActions = [
     {
-      icon: <Ionicons name="people" size={24} color={PRIMARY_COLOR} />,
-      title: "My Students",
+      icon: <Ionicons name="people-outline" size={30} color={PRIMARY_COLOR} />,
+      title: ["My", "Students"],
       onPress: () => navigation.navigate("MyStudents"),
       userType: "lecturer",
     },
     {
-      icon: <Ionicons name="map" size={24} color={PRIMARY_COLOR} />,
-      title: "View Attendance Map",
+      icon: <Ionicons name="map-outline" size={30} color={PRIMARY_COLOR} />,
+      title: ["View", "Attendance Map"],
       onPress: () => navigation.navigate("Map"),
       userType: "lecturer",
     },
     {
-      icon: <Ionicons name="clipboard" size={24} color={PRIMARY_COLOR} />,
-      title: "Attendance History",
+      icon: <Ionicons name="clipboard" size={30} color={PRIMARY_COLOR} />,
+      title: ["Attendance", "History"],
       onPress: () => navigation.navigate("StudentAttendanceHistory"),
       userType: "student",
     },
     {
-      icon: <Ionicons name="calendar" size={24} color={PRIMARY_COLOR} />,
-      title: "Manage Attendance",
+      icon: (
+        <Ionicons name="calendar-outline" size={30} color={PRIMARY_COLOR} />
+      ),
+      title: ["Manage", "Attendance"],
       onPress: () => navigation.navigate("AttendanceHistory"),
       userType: "lecturer",
     },
     {
-      icon: <Ionicons name="book" size={24} color={PRIMARY_COLOR} />,
-      title: "Courses",
+      icon: <Ionicons name="book" size={30} color={PRIMARY_COLOR} />,
+      title: ["My", "Courses"],
       onPress: () => navigation.navigate("Courses"),
       userType: "student",
     },
     {
-      icon: <Ionicons name="help-outline" size={24} color={PRIMARY_COLOR} />,
-      title: "Quiz",
+      icon: <Ionicons name="help-outline" size={30} color={PRIMARY_COLOR} />,
+      title: ["Active", "Quiz"],
       onPress: () => navigation.navigate("Quiz"),
+      userType: "student",
+    },
+    {
+      icon: <Ionicons name="person-outline" size={30} color={PRIMARY_COLOR} />,
+      title: ["My", "Profile"],
+      onPress: () => navigation.navigate("Profile"),
+      userType: "lecturer",
+    },
+    {
+      icon: <Ionicons name="person-outline" size={30} color={PRIMARY_COLOR} />,
+      title: ["My", "Profile"],
+      onPress: () => navigation.navigate("Profile"),
       userType: "student",
     },
   ];
 
+  const AttendanceActions = [
+    {
+      icon: (
+        <Ionicons
+          name={
+            activeAttendanceSessions.length > 0
+              ? "play-outline"
+              : "play-outline"
+          }
+          size={40}
+          color={PRIMARY_COLOR}
+        />
+      ),
+      title: [
+        activeAttendanceSessions.length > 0 ? "Resume" : "Start",
+        "Attendance",
+        "Session",
+      ],
+      onPress: () => navigation.navigate("Attendance"),
+      userType: "lecturer",
+    },
+    {
+      icon: <Icon name="task" size={40} color={PRIMARY_COLOR} />,
+      title: ["My", "Task", "Assignment"],
+      onPress: () => alert("Coming Soon"),
+      userType: "lecturer",
+    },
+  ];
+
   return (
-    <View className="flex-1 bg-[#f5f5f5] ">
+    <View className="flex-1 relative bg-black">
       <StatusBar style="light" />
 
       <LinearGradient
-        colors={["#5b2333", "#7d3045"]}
+        colors={["black", "black"]}
         style={{
-          padding: 40,
-          borderBottomRightRadius: 20,
-          borderBottomLeftRadius: 20,
+          paddingVertical: 40,
+          borderBottomRightRadius: -20,
+          borderBottomLeftRadius: -20,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <View className=" flex flex-row justify-center items-center">
-          <Text className="pt-6 text-white text-2xl font-semibold">
-            Welcome
-          </Text>
+        <View className="flex flex-row items-end justify-between w-10/12 mt-4 gap-4 ">
+          <View className="items-start gap-y-1  w-fit px-1">
+            {/* <Text className="text-white text-base">{getGreeting()}</Text> */}
+            <Heading2 color={theme.colors.white} className=" capitalize border">
+              {userProfile?.name}
+            </Heading2>
+            <Subtitle color={theme.colors.white} className="capitalize border">
+              {userProfile?.userType}
+            </Subtitle>
+          </View>
+
+          <View className="w-20 h-20 items-center justify-center border-white border-2 rounded-full bg-transparent">
+            <Heading2 color={theme.colors.white}>
+              {getInitials(userProfile?.name || userProfile?.email || "User")}
+            </Heading2>
+          </View>
         </View>
       </LinearGradient>
 
-      <ScrollView className="mx-2 gap-y-4">
-        <View className="flex-row items-end w-9/12 ">
-          <View className="items-start gap-y-1 mt-4 w-full px-1">
-            <Text className="text-neutral-600 text-base">{getGreeting()}</Text>
-            <Text className="text-2xl font-bold text-black">
-              {userProfile?.name}
-            </Text>
-            <Text className="text-primary capitalize ">
-              {userProfile?.userType}
-            </Text>
-          </View>
+      <ScrollView
+        className="flex-1 border  rounded-t-3xl absolute w-full h-full top-40"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <LinearGradient
+          colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+          style={{
+            flex: 1,
+            minHeight: "100%",
+            borderTopRightRadius: 20,
+            borderTopLeftRadius: 20,
+            paddingHorizontal: 8,
+            marginBottom: 200,
+          }}
+        >
+          {activeAttendanceSessions.length > 0 && (
+            <View className="mt-4">
+              <Heading4
+                color={theme.colors.white}
+                className="font-semibold mb-3"
+              >
+                Active Attendance Sessions
+              </Heading4>
 
-          <View className="w-20 h-20 items-center justify-center border-primary border-2 rounded-full bg-transparent">
-            <Text className="text-2xl text-primary font-medium">
-              {getInitials(userProfile?.name || userProfile?.email || "User")}
-            </Text>
-          </View>
-        </View>
-
-        {userProfile?.userType === "lecturer" && (
-          <View className="py-4 flex flex-row justify-center items-cente r">
-            <TouchableOpacity
-              onPress={() => navigation.push("Attendance")}
-              className="shadow-sm bg-neutral-50 rounded-md py-4 w-11/12 flex-row justify-center items-center gap-x-2"
-            >
-              <Ionicons
-                name="play-circle-outline"
-                color={"#5b2333"}
-                size={24}
-              />
-              {activeAttendanceSessions.length > 0 ? (
-                <Text className="font-semibold text-primary">
-                  Resume Attendance Session
-                </Text>
-              ) : (
-                <Text className="font-semibold text-primary">
-                  Start New Attendance Session
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-        {activeAttendanceSessions.length > 0 && (
-          <View className="my-5">
-            <Text className="text-lg font-semibold text-[#5b2333] mb-3">
-              Active Attendance Sessions
-            </Text>
-
-            <ScrollView className="h-auto max-h-48">
-              {activeAttendanceSessions.map((session) => (
-                <View
-                  key={session.id}
-                  className="bg-white rounded-xl p-4 mb-4 border-l-4 border-[#5b2333] shadow-sm"
-                >
-                  <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-base font-bold text-[#5b2333]">
-                      {session.courseCode || "Unknown Course"}
-                    </Text>
-                    <View className="bg-green-100 px-3 py-1 rounded-full">
-                      <Text className="text-xs text-green-800 font-medium">
-                        {session.mode === "automatic" ? "Automatic" : "Quiz"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text className="text-sm mb-3">
-                    {session.courseTitle || ""}
-                  </Text>
-
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center">
-                      <Ionicons name="time-outline" size={16} color="#666" />
-                      <Text className="text-xs text-gray-600 ml-1">
-                        Started:{" "}
-                        {new Date(session.startTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="hourglass-outline"
-                        size={16}
-                        color="#666"
-                      />
-                      <Text className="text-xs text-gray-600 ml-1">
-                        Duration: {session.duration} mins
-                      </Text>
-                    </View>
-                  </View>
-                  {session.mode === "quiz_based" &&
-                    userProfile?.userType === "student" && (
-                      <TouchableOpacity
-                        className="bg-[#5b2333]/90 py-3 rounded-lg mt-3 flex-row justify-center items-center"
-                        onPress={() => {
-                          if (
-                            session.mode === "quiz_based" &&
-                            userProfile?.userType === "student"
-                          ) {
-                            navigation.navigate("Quiz" as never);
-                          }
-                        }}
+              <ScrollView className="h-auto max-h-48">
+                {activeAttendanceSessions.map((session) => (
+                  <View
+                    key={session.id}
+                    className="border-[0.5px]  border-[#14181D] rounded-3xl p-4 mb-4"
+                  >
+                    <View className="flex-row justify-between items-center mb-0">
+                      <Subtitle
+                        color={theme.colors.white}
+                        className=" !font-clash-semibold"
                       >
+                        {session.courseCode || "Unknown Course"}
+                      </Subtitle>
+                      <View className="bg-none px-3 py-1 border border-white rounded-full">
+                        <Caption
+                          color={theme.colors.white}
+                          className="!font-clash-medium"
+                        >
+                          {session.mode === "automatic" ? "Automatic" : "Quiz"}
+                        </Caption>
+                      </View>
+                    </View>
+
+                    <Subtitle
+                      color={theme.colors.white}
+                      className="text-sm mb-2"
+                    >
+                      {session.courseTitle || ""}
+                    </Subtitle>
+
+                    <View className="flex-row justify-between items-center">
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="time-outline" size={20} color="#fff" />
+                        <Caption
+                          color={theme.colors.white}
+                          className="!font-clash-medium"
+                        >
+                          Started:{" "}
+                          {new Date(session.startTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </Caption>
+                      </View>
+                      <View className="flex-row items-center gap-1">
                         <Ionicons
-                          name={
-                            session.mode === "quiz_based"
-                              ? "help-circle"
-                              : "clipboard"
-                          }
-                          size={18}
-                          color="white"
+                          name="hourglass-outline"
+                          size={20}
+                          color="#fff"
                         />
-                        <Text className="text-white font-semibold text-center ml-2">
-                          {session.mode === "quiz_based" &&
-                            userProfile?.userType === "student" &&
-                            "Take Attendance Quiz"}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+                        <Caption
+                          className="!font-clash-medium"
+                          color={theme.colors.white}
+                        >
+                          Duration: {session.duration} mins
+                        </Caption>
+                      </View>
+                    </View>
+                    {session.mode === "quiz_based" &&
+                      userProfile?.userType === "student" && (
+                        <TouchableOpacity
+                          className="bg-[#14181D] py-3 rounded-lg mt-3 flex-row justify-center items-center"
+                          onPress={() => {
+                            if (
+                              session.mode === "quiz_based" &&
+                              userProfile?.userType === "student"
+                            ) {
+                              navigation.navigate("Quiz" as never);
+                            }
+                          }}
+                        >
+                          <Subtitle color={theme.colors.white}>
+                            {session.mode === "quiz_based" &&
+                              userProfile?.userType === "student" &&
+                              "Take Attendance Quiz"}
+                          </Subtitle>
 
-        <Text className="font-semibold text-lg mt-5">Quick Actions</Text>
-        <View className="flex-row flex-wrap justify-between ">
-          {QuickActions.map((action, index) => (
-            <React.Fragment key={index}>
-              {action.userType === userProfile?.userType && (
-                <TouchableOpacity
-                  key={index}
-                  className="bg-white shadow-sm rounded-lg py-6 gap-y-3 m-2 w-[45%] items-center"
-                  onPress={action.onPress}
-                >
-                  <View className="h-14 w-14 bg-primary/60 items-center justify-center rounded-full">
-                    {action.icon}
+                          <Ionicons
+                            name={
+                              session.mode === "quiz_based"
+                                ? "help-circle"
+                                : "clipboard"
+                            }
+                            size={18}
+                            color="white"
+                          />
+                        </TouchableOpacity>
+                      )}
                   </View>
-                  <Text className="text-center text-base font-medium text-primary">
-                    {action.title}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </React.Fragment>
-          ))}
-        </View>
-
-        {loading && (
-          <View className="py-8 items-center">
-            <Text className="text-gray-500">Loading sessions...</Text>
-          </View>
-        )}
-
-        {userProfile?.userType === "student" &&
-          !loading &&
-          activeAttendanceSessions.length === 0 &&
-          enrolledCourses.size > 0 && (
-            <View className="bg-white rounded-xl p-6 my-4 items-center">
-              <Ionicons name="calendar-outline" size={40} color="#9ca3af" />
-              <Text className="text-base text-gray-700 text-center mt-3 font-medium">
-                No Active Sessions
-              </Text>
-              <Text className="text-sm text-gray-500 text-center mt-1">
-                There are no active attendance sessions for your courses right
-                now.
-              </Text>
+                ))}
+              </ScrollView>
             </View>
           )}
+
+          <Heading3
+            color={theme.colors.white}
+            className="font-semibold text-lg my-5"
+          >
+            Academic Essentials
+          </Heading3>
+          <View className="flex-row flex-wrap justify-between gap-3 ">
+            {QuickActions.map((action, index) => (
+              <React.Fragment key={index}>
+                {action.userType === userProfile?.userType && (
+                  <DarkButton
+                    key={index}
+                    className="bg-white shadow-sm rounded-lg py-6 gap-y-3 m-2 w-[45%] items-center"
+                    onPress={action.onPress}
+                    icon={action.icon}
+                    title={action.title}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
+
+          <Heading3
+            color={theme.colors.white}
+            className="font-semibold text-lg my-5"
+          >
+            Attendance Actions
+          </Heading3>
+          <View className="flex-row flex-wrap justify-between gap-3 ">
+            {AttendanceActions.map((action, index) => (
+              <React.Fragment key={index}>
+                {action.userType === userProfile?.userType && (
+                  <DarkButton
+                    key={index}
+                    className="bg-white shadow-sm rounded-lg py-6 gap-y-3 m-2 w-[45%] items-center"
+                    onPress={action.onPress}
+                    icon={action.icon}
+                    title={action.title}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
+
+          {userProfile?.userType === "lecturer" && (
+            <View className="py-4 flex flex-row justify-center items-center mt-8 ">
+              <TouchableOpacity
+                onPress={() => navigation.push("Attendance")}
+                className="shadow-sm bg-none  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]   rounded-3xl"
+              >
+                {activeAttendanceSessions.length > 0 ? (
+                  <Heading4 color={theme.colors.white} className="">
+                    Resume Attendance Session
+                  </Heading4>
+                ) : (
+                  <Subtitle className="!text-2xl" color={theme.colors.white}>
+                    Start Attendance Session
+                  </Subtitle>
+                )}
+
+                <Ionicons
+                  name="chevron-forward-outline"
+                  color={"#ffff"}
+                  size={28}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {userProfile?.userType === "lecturer" && (
+            <View className="py-4 flex flex-row justify-center items-center ">
+              <TouchableOpacity
+                onPress={() => alert("Coming Soon")}
+                className="shadow-sm bg-none  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]   rounded-3xl"
+              >
+                <Subtitle className="!text-2xl" color={theme.colors.white}>
+                  Register A New Course
+                </Subtitle>
+
+                <Ionicons
+                  name="chevron-forward-outline"
+                  color={"#ffff"}
+                  size={28}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View className="py-4 flex flex-row justify-center items-center ">
+            <TouchableOpacity
+              onPress={logout}
+              className="shadow-sm bg-primary  py-6 px-8  w-full flex-row justify-between items-center gap-x-2    rounded-3xl"
+            >
+              <Subtitle className="!text-2xl" color={theme.colors.white}>
+                Logout
+              </Subtitle>
+
+              <Ionicons
+                name="chevron-forward-outline"
+                color={"#ffff"}
+                size={28}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {loading && (
+            <View className="py-8 items-center">
+              <Heading4 color={theme.colors.white} className="text-gray-500">
+                Loading sessions...
+              </Heading4>
+            </View>
+          )}
+
+          {userProfile?.userType === "student" &&
+            !loading &&
+            activeAttendanceSessions.length === 0 &&
+            enrolledCourses.size > 0 && (
+              <View className="bg-none border-[0.5px]  rounded-3xl p-6 my-4 items-center">
+                <Ionicons name="calendar-outline" size={40} color="#ffff" />
+                <Heading4
+                  color={theme.colors.white}
+                  className="text-base text-gray-700 text-center mt-3 font-medium"
+                >
+                  No Active Sessions
+                </Heading4>
+                <Caption color={theme.colors.white} className="!text-center">
+                  There are no active attendance sessions for your courses right
+                  now.
+                </Caption>
+              </View>
+            )}
+        </LinearGradient>
       </ScrollView>
     </View>
   );

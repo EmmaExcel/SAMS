@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  StyleSheet,
   Text,
   View,
   TextInput,
@@ -10,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Pressable,
+  StyleSheet,
 } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db, rtdb } from "../firebase";
@@ -18,31 +19,37 @@ import { ref, set, serverTimestamp } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MobileRegister from "../assets/register.svg";
 import { Feather } from "@expo/vector-icons";
+import { useTheme } from "../context/themeContext";
+import {
+  Body,
+  Caption,
+  Heading1,
+  Heading3,
+  Heading4,
+  Subtitle,
+} from "../component/ui/Typography";
+import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function RegistrationScreen() {
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedUserType, setSelectedUserType] = useState<
-    "student" | "lecturer"
-  >("student");
+  const [selectedUserType, setSelectedUserType] = useState("student");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const navigation = useNavigation();
 
-  const handleRegister = async (type: "student" | "lecturer") => {
+  const handleRegister = async (type: any) => {
     if (!email || !password) {
       Alert.alert("Error", "Email and password are required");
       return;
     }
-
     if (password.length < 6) {
       Alert.alert("Error", "Password must be at least 6 characters");
       return;
     }
-
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -51,8 +58,6 @@ export default function RegistrationScreen() {
         password
       );
       const user = userCredential.user;
-
-      // Save basic user data to Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
@@ -60,23 +65,17 @@ export default function RegistrationScreen() {
         profileCompleted: false,
         createdAt: new Date(),
       });
-
-      const rtdbUserRef = ref(rtdb, `users/${user.uid}`);
-      const rtdbStatusRef = ref(rtdb, `status/${user.uid}`);
-
-      await set(rtdbUserRef, {
+      await set(ref(rtdb, `users/${user.uid}`), {
         email: user.email,
         userType: type,
         isOnline: true,
         profileCompleted: false,
         lastUpdated: serverTimestamp(),
       });
-
-      await set(rtdbStatusRef, {
+      await set(ref(rtdb, `status/${user.uid}`), {
         state: "online",
         lastActive: serverTimestamp(),
       });
-
       await AsyncStorage.setItem(
         "user",
         JSON.stringify({
@@ -86,16 +85,15 @@ export default function RegistrationScreen() {
           profileCompleted: false,
         })
       );
-
       Alert.alert("Registration Successful", "Now let's set up your profile!", [
         {
           text: "Continue",
           onPress: () => {
-            if (type === "lecturer") {
-              navigation.navigate("LecturerProfileSetup" as never);
-            } else {
-              navigation.navigate("StudentProfileSetup" as never);
-            }
+            navigation.navigate(
+              type === "lecturer"
+                ? "LecturerProfileSetup"
+                : "StudentProfileSetup"
+            );
           },
         },
       ]);
@@ -107,236 +105,181 @@ export default function RegistrationScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
+    <LinearGradient
+      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView className="flex-1">
+        <StatusBar style="light" />
+        <View className="items-start px-3">
+          <Heading1 color={theme.colors.white}>Create Account</Heading1>
+          <Subtitle
+            color={theme.colors.white}
+            className="text-lg font-medium text-[#5b2333]"
+          >
+            Sign up to experience Geo-attend
+          </Subtitle>
+        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1 justify-center px-2"
         >
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>Create Your Account</Text>
-          </View>
-
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                selectedUserType === "student" && styles.selectedToggle,
-              ]}
-              onPress={() => setSelectedUserType("student")}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  selectedUserType === "student" && styles.selectedToggleText,
-                ]}
-              >
-                Student
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                selectedUserType === "lecturer" && styles.selectedToggle,
-              ]}
-              onPress={() => setSelectedUserType("lecturer")}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  selectedUserType === "lecturer" && styles.selectedToggleText,
-                ]}
-              >
-                Lecturer
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Feather
-                name="mail"
-                size={20}
-                color="#5b2333"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+          <View className="px-3 bg-none  rounded-xl">
+            <View className="flex-row justify-start my-4 bg-black/40 rounded-xl py-2">
+              {["student", "lecturer"].map((type) => (
+                <Pressable
+                  key={type}
+                  className={`flex-1 py-3 mx-2 rounded-lg items-center ${
+                    selectedUserType === type ? `bg-black/70 ` : "bg-none"
+                  }`}
+                  onPress={() => setSelectedUserType(type)}
+                >
+                  <Subtitle
+                    color={theme.colors.white}
+                    className={`text-base font-semibold ${
+                      selectedUserType === type
+                        ? "text-white"
+                        : "text-[#5b2333]"
+                    }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Subtitle>
+                </Pressable>
+              ))}
             </View>
 
-            <View style={styles.inputContainer}>
-              <Feather
-                name="lock"
-                size={20}
-                color="#5b2333"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
-              >
+            <View className="mb-6">
+              <View className="flex-row items-center bg-black/80 rounded-xl mb-4 px-4 h-14 border ">
                 <Feather
-                  name={showPassword ? "eye-off" : "eye"}
+                  name="mail"
                   size={20}
-                  color="#777"
+                  color="#9CA3AF"
+                  className="mr-3"
                 />
+                <TextInput
+                  className="flex-1 text-base text-white "
+                  placeholder="Email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View className="flex-row items-center bg-black/80 rounded-xl px-4 h-14 border">
+                <Feather
+                  name="lock"
+                  size={20}
+                  color="#9CA3AF"
+                  className="mr-3"
+                />
+                <TextInput
+                  className="flex-1 text-base text-white"
+                  placeholder="Password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  className="p-2"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {loading ? (
+              <ActivityIndicator
+                size="large"
+                color="#5b2333"
+                className="my-6"
+              />
+            ) : (
+              <TouchableOpacity
+                className="flex-row items-center justify-center h-14 rounded-xl bg-[#fff] my-4"
+                onPress={() => handleRegister(selectedUserType)}
+              >
+                <Subtitle className="text-black text-base font-semibold">
+                  Register
+                </Subtitle>
+              </TouchableOpacity>
+            )}
+
+            <View className="flex-row justify-center items-center mt-8">
+              <Body color={theme.colors.white} className="">
+                Already have an account?
+              </Body>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                <Subtitle
+                  color={theme.colors.white}
+                  className="!font-semibold underline"
+                >
+                  {"   "}
+                  Login
+                </Subtitle>
               </TouchableOpacity>
             </View>
           </View>
-
-          {loading ? (
-            <ActivityIndicator
-              size="large"
-              color="#5b2333"
-              style={styles.loader}
-            />
-          ) : (
-            <TouchableOpacity
-              style={styles.registerButton}
-              onPress={() => handleRegister(selectedUserType)}
-            >
-              <Text style={styles.registerButtonText}>Register</Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={styles.loginLink}>
-            <Text style={styles.loginText}>Already have an account?</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Login" as never)}
-            >
-              <Text style={styles.loginButton}>Login</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  gradientContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    width: "100%",
   },
   container: {
     flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  headerContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    justifyContent: "center",
+    width: "100%",
+    padding: 16,
+  },
+  slideContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#5b2333",
-    marginBottom: 8,
+    textAlign: "center",
+    marginTop: 20,
+    color: "#ffffff",
   },
-  formContainer: {
+  description: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 10,
+    lineHeight: 24,
+  },
+  controls: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     width: "100%",
-    marginBottom: 24,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f4f5",
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: "#333",
-  },
-  passwordToggle: {
-    padding: 8,
-  },
-  toggleContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginVertical: 16,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    marginHorizontal: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
+    paddingHorizontal: 32,
+    marginBottom: 40,
     alignItems: "center",
   },
-  selectedToggle: {
-    backgroundColor: "#5b2333",
+  controlText: {
+    fontSize: 18,
+    color: "#ffffff",
+    fontWeight: "500",
   },
-  toggleText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#5b2333",
-  },
-  selectedToggleText: {
-    color: "#fff",
-  },
-  loader: {
-    marginVertical: 20,
-  },
-  registerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: "#5b2333",
-    marginVertical: 16,
-  },
-  registerButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  loginLink: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 30,
-  },
-  loginText: {
-    fontSize: 15,
-    color: "#666",
-  },
-  loginButton: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#5b2333",
-    marginLeft: 6,
+  disabledText: {
+    color: "rgba(255, 255, 255, 0.4)",
   },
 });

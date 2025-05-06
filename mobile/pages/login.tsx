@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import {
-  StyleSheet,
   Text,
-  View,
   TextInput,
-  Button,
-  Alert,
-  ActivityIndicator,
   TouchableOpacity,
+  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
 } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db, rtdb } from "../firebase";
@@ -15,12 +16,20 @@ import { doc, getDoc } from "firebase/firestore";
 import { ref, set, serverTimestamp } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
-import MobileLogin from "../assets/login.svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import {
+  Body,
+  ButtonText,
+  Caption,
+  Heading1,
+  Subtitle,
+} from "../component/ui/Typography";
+import { useTheme } from "../context/themeContext";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function LoginScreen() {
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +52,6 @@ export default function LoginScreen() {
       );
       const user = userCredential.user;
 
-      // Fetch user data from Firestore
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
@@ -55,7 +63,6 @@ export default function LoginScreen() {
           return;
         }
 
-        // Store session locally
         await AsyncStorage.setItem(
           "user",
           JSON.stringify({
@@ -63,50 +70,44 @@ export default function LoginScreen() {
             email,
             userType: userData.userType,
             name: userData.name,
-            department: userData.department, // Include department
-            level: userData.level, // Include level for students
+            department: userData.department,
+            level: userData.level,
             profileCompleted: userData.profileCompleted || false,
           })
         );
 
-        // Initialize user in Realtime Database
         const rtdbUserRef = ref(rtdb, `users/${user.uid}`);
         const rtdbStatusRef = ref(rtdb, `status/${user.uid}`);
 
-        // Set user data in RTDB
         await set(rtdbUserRef, {
           email: user.email,
           name: userData.name || email.split("@")[0],
           userType: userData.userType,
-          department: userData.department, // Include department
+          department: userData.department,
           isOnline: true,
           lastUpdated: serverTimestamp(),
         });
 
-        // Set user status in RTDB
         await set(rtdbStatusRef, {
           state: "online",
           lastActive: serverTimestamp(),
         });
 
-        console.log("User initialized in RTDB:", user.uid);
         Alert.alert("Login Successful", "You have logged in successfully!");
 
-        // Check if profile is completed
         if (!userData.profileCompleted) {
           if (userData.userType === "lecturer") {
             navigation.reset({
               index: 0,
               routes: [{ name: "LecturerProfileSetup" }] as never,
             });
-          } else if (userData.userType === "student") {
+          } else {
             navigation.reset({
               index: 0,
               routes: [{ name: "StudentProfileSetup" }] as never,
             });
           }
         } else {
-          // Navigate to home
           navigation.reset({
             index: 0,
             routes: [{ name: "Home" }] as never,
@@ -123,171 +124,162 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View className="w-full flex flex-col items-center gap-y-5">
-        <View className="w-full">
-          <Text style={styles.title}>Sign In</Text>
-          <Text className="text-lg font-medium text-primary">
-            Welcome Back , login to continue
-          </Text>
-        </View>
-
-        <View className="w-full flex flex-col items-center justify-center  mt-40">
-          <View style={styles.inputContainer}>
-            <Feather
-              name="mail"
-              size={20}
-              color="#5b2333"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Feather
-              name="lock"
-              size={20}
-              color="#5b2333"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity
-              style={styles.passwordToggle}
-              onPress={() => setShowPassword(!showPassword)}
+    <LinearGradient
+      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView className="flex-1  justify-start items-center">
+        <View className="w-full flex flex-col items-center gap-y-5 flex-1">
+          <View className="w-full px-4">
+            <Heading1
+              color={theme.colors.white}
+              className="text-2xl font-bold text-white mb-2"
             >
-              <Feather
-                name={showPassword ? "eye-off" : "eye"}
-                size={20}
-                color="#777"
-              />
-            </TouchableOpacity>
+              Sign In
+            </Heading1>
+            <Subtitle
+              color={theme.colors.white}
+              className="text-lg font-medium text-[#5b2333]"
+            >
+              Welcome Back, login to continue
+            </Subtitle>
           </View>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="flex-1 justify-center px-2 w-full"
+          >
+            <View className="px-3 bg-none gap-y-4 rounded-xl">
+              <View className="flex-row items-center bg-black/80 rounded-xl px-4  h-14">
+                <Feather
+                  name="mail"
+                  size={20}
+                  color="#9CA3AF"
+                  className="mr-3"
+                />
+                <TextInput
+                  className="flex-1 text-lg text-white"
+                  placeholder="Email"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View className="flex-row items-center bg-black/80 rounded-xl px-4  h-14">
+                <Feather
+                  name="lock"
+                  size={20}
+                  color="#9CA3AF"
+                  className="mr-3"
+                />
+                <TextInput
+                  className="flex-1 text-lg text-white"
+                  placeholder="Password"
+                  placeholderTextColor="#9CA3AF"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  className="p-2"
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#777"
+                  />
+                </TouchableOpacity>
+              </View>
+              {loading ? (
+                <ActivityIndicator
+                  size="large"
+                  color="#5b2333"
+                  className="mt-6"
+                />
+              ) : (
+                <TouchableOpacity
+                  onPress={handleLogin}
+                  className="flex-row items-center justify-center h-14 rounded-xl w-full bg-[#fff] mt-6"
+                >
+                  <ButtonText className="text-white text-base font-semibold">
+                    Login
+                  </ButtonText>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                className="mt-5 flex flex-row justify-center"
+                onPress={() => navigation.navigate("Register" as never)}
+              >
+                <Body
+                  color={theme.colors.white}
+                  className="text-base text-black"
+                >
+                  Don&apos;t have an account?{"   "}
+                  <ButtonText color={theme.colors.white} className=" underline">
+                    Register
+                  </ButtonText>
+                </Body>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" color="#5b2333" />
-        ) : (
-          <TouchableOpacity style={styles.registerButton} onPress={handleLogin}>
-            <Text style={styles.registerButtonText}>Login</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.loginLink}
-          onPress={() => navigation.navigate("Register" as never)}
-        >
-          <Text className="text-black text-base">
-            Don't have an account?{" "}
-            <Text className="text-primary" style={styles.loginText}>
-              Register
-            </Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradientContainer: {
+    flex: 1,
+    width: "100%",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
+    width: "100%",
     padding: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#5b2333",
-  },
-
-  registerLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 20,
-  },
-
-  button: {
-    width: "100%",
-    height: 40,
-    borderRadius: 6,
-    overflow: "hidden",
-    elevation: 4,
-    shadowColor: "#5f85db",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  gradient: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "medium",
-  },
-  loginLink: {
-    marginTop: 20,
-  },
-  loginText: {
-    fontWeight: "bold",
-    textDecorationLine: "underline",
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f4f5",
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
+  slideContainer: {
     flex: 1,
-    fontSize: 16,
-    color: "#333",
-  },
-  passwordToggle: {
-    padding: 8,
-  },
-  registerButton: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    height: 56,
-    borderRadius: 12,
+    alignItems: "center",
     width: "100%",
-    backgroundColor: "#5b2333",
-    marginVertical: 10,
+    paddingHorizontal: 20,
   },
-  registerButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginTop: 20,
+    color: "#ffffff",
+  },
+  description: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: 10,
+    lineHeight: 24,
+  },
+  controls: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingHorizontal: 32,
+    marginBottom: 40,
+    alignItems: "center",
+  },
+  controlText: {
+    fontSize: 18,
+    color: "#ffffff",
+    fontWeight: "500",
+  },
+  disabledText: {
+    color: "rgba(255, 255, 255, 0.4)",
   },
 });

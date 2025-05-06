@@ -449,9 +449,7 @@ export default function MyStudents() {
   const renderHeader = () => (
     <View>
       <LinearGradient
-        colors={["#5b2333", "#7d3045"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
         style={{
           paddingTop: 50,
           paddingBottom: 8,

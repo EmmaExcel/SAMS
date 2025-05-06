@@ -13,6 +13,13 @@ import Teacher from "../assets/teacher.svg";
 import Observation from "../assets/observations.svg";
 import Location from "../assets/location.svg";
 import Svg from "react-native-svg";
+import {
+  Heading1,
+  Heading2,
+  Heading4,
+  Subtitle,
+} from "../component/ui/Typography";
+import { useTheme } from "../context/themeContext";
 
 const { width } = Dimensions.get("window");
 
@@ -41,6 +48,7 @@ const slides = [
 ];
 
 export default function IntroScreen() {
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -62,45 +70,47 @@ export default function IntroScreen() {
 
   return (
     <LinearGradient
-      colors={["#ffff", "#ffff", "#ffff"]}
+      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
       style={styles.gradientContainer}
     >
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity onPress={handleSkip} className="w-full items-end ">
-          <Text className="text-primary text-lg">Skip</Text>
+        <TouchableOpacity
+          onPress={handleSkip}
+          className="w-full items-end px-3"
+        >
+          <Heading4 color={theme.colors.white}>Skip</Heading4>
         </TouchableOpacity>
         <View style={styles.slideContainer}>
           {slides[currentSlide].image}
-          <Text style={styles.title}>{slides[currentSlide].title}</Text>
-          <Text style={styles.description}>
+          <Heading1 color={theme.colors.white}>
+            {slides[currentSlide].title}
+          </Heading1>
+          <Subtitle style={styles.description}>
             {slides[currentSlide].description}
-          </Text>
+          </Subtitle>
         </View>
 
         <View style={styles.controls}>
           <TouchableOpacity onPress={handlePrev} disabled={currentSlide === 0}>
-            <Text
+            <Subtitle
               style={[
                 styles.controlText,
                 currentSlide === 0 && styles.disabledText,
               ]}
             >
               Previous
-            </Text>
+            </Subtitle>
           </TouchableOpacity>
 
           {currentSlide < slides.length - 1 ? (
             <TouchableOpacity onPress={handleNext}>
-              <Text style={styles.controlText}>Next</Text>
+              <Subtitle style={styles.controlText}>Next</Subtitle>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              className="bg-primary px-2 py-1 rounded-md "
-              onPress={handleSkip}
-            >
-              <Text className="text-lg text-white font-medium ">
+            <TouchableOpacity className="bg-none " onPress={handleSkip}>
+              <Subtitle color={theme.colors.white} className="text-lg ">
                 Get Started
-              </Text>
+              </Subtitle>
             </TouchableOpacity>
           )}
         </View>
@@ -119,27 +129,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    padding: 16,
+    padding: 0,
   },
   slideContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 20,
-    color: "#3a3a3a",
-  },
+
   description: {
     fontSize: 18,
     textAlign: "center",
-    color: "#7a7a7a",
+    color: "rgba(255, 255, 255, 0.8)",
     marginTop: 10,
+    lineHeight: 24,
   },
   controls: {
     flexDirection: "row",
@@ -151,9 +156,10 @@ const styles = StyleSheet.create({
   },
   controlText: {
     fontSize: 18,
-    color: "#5b2333",
+    color: "#ffffff",
+    fontWeight: "500",
   },
   disabledText: {
-    color: "#ccc",
+    color: "rgba(255, 255, 255, 0.4)",
   },
 });
