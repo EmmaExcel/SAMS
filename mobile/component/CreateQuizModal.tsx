@@ -8,6 +8,13 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import {
+  ButtonText,
+  Caption,
+  Heading4,
+  Subtitle,
+  Typography,
+} from "./ui/Typography";
 
 interface CreateQuizModalProps {
   visible: boolean;
@@ -58,34 +65,48 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
       onRequestClose={onClose}
     >
       <View className="flex-1 justify-center items-center bg-black/50 px-4">
-        <View className="w-[95%] max-w-[480px] bg-white rounded-xl shadow-lg">
+        <View className="w-[95%] max-w-[480px] bg-[#111827]/90 rounded-xl shadow-lg">
           {/* Header */}
           <View className="border-b border-gray-200 p-5">
-            <Text className="text-xl font-bold text-primary text-center">
+            <Heading4
+              color="white"
+              className="text-xl font-bold text-primary text-center"
+            >
               Create Attendance Quiz
-            </Text>
-            <Text className="text-gray-500 text-sm text-center mt-1">
+            </Heading4>
+
+            <Typography
+              variant="small"
+              color="white"
+              className="text-gray-500 text-sm text-center mt-1"
+            >
               Students will answer this quiz to mark attendance
-            </Text>
+            </Typography>
           </View>
 
           <ScrollView className="px-5 py-4">
             {courseInfo && (
-              <View className="bg-gray-50 p-4 rounded-lg mb-5 border shadow-sm border-primary">
-                <Text className="text-base font-bold text-primary">
+              <View className="bg-none p-2 rounded-lg mb-3  shadow-sm border-primary">
+                <Subtitle
+                  color="white"
+                  className="text-base font-bold text-primary"
+                >
                   {courseInfo.code}
-                </Text>
-                <Text className="text-gray-700 text-sm mt-1">
+                </Subtitle>
+                <Caption color="white" className="text-gray-700 text-sm mt-1">
                   {courseInfo.title}
-                </Text>
+                </Caption>
               </View>
             )}
 
             {/* Question Field */}
             <View className="mb-4">
-              <Text className="text-base font-semibold text-gray-800 mb-2">
+              <Caption
+                color="white"
+                className="text-base font-semibold text-gray-800 mb-2"
+              >
                 Question
-              </Text>
+              </Caption>
               <TextInput
                 className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800"
                 placeholder="Enter your question"
@@ -95,16 +116,22 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                 numberOfLines={3}
                 textAlignVertical="top"
               />
-              <Text className="text-xs text-gray-500 mt-1">
+              <Typography
+                variant="small"
+                className="text-xs !text-gray-500 mt-1"
+              >
                 Make your question clear and specific
-              </Text>
+              </Typography>
             </View>
 
             {/* Answer Field */}
             <View className="mb-4">
-              <Text className="text-base font-semibold text-gray-800 mb-2">
+              <Caption
+                color="white"
+                className="text-base font-semibold text-gray-800 mb-2"
+              >
                 Correct Answer
-              </Text>
+              </Caption>
               <TextInput
                 className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800"
                 placeholder="Enter the correct answer"
@@ -115,9 +142,12 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
 
             {/* Points Field */}
             <View className="mb-5">
-              <Text className="text-base font-semibold text-gray-800 mb-2">
+              <Caption
+                color="white"
+                className="text-base font-semibold text-gray-800 mb-2"
+              >
                 Points
-              </Text>
+              </Caption>
               <View className="flex-row items-center">
                 <TextInput
                   className="border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-800 w-1/4"
@@ -126,32 +156,40 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
                   onChangeText={setPoints}
                   keyboardType="numeric"
                 />
-                <Text className="text-gray-500 ml-3">
+                <Typography
+                  variant="small"
+                  color="white"
+                  className="text-gray-500 ml-3"
+                >
                   point{parseInt(points) !== 1 ? "s" : ""}
-                </Text>
+                </Typography>
               </View>
             </View>
           </ScrollView>
 
           {/* Action Buttons */}
-          <View className="flex-row p-3">
+          <View className="flex-row p-4">
             <TouchableOpacity
               className="flex-1 py-3 bg-gray-100 rounded-lg items-center justify-center mr-2"
               onPress={onClose}
               disabled={loading}
             >
-              <Text className="text-gray-700 font-semibold">Cancel</Text>
+              <ButtonText color="black" className="text-gray-700 font-semibold">
+                Cancel
+              </ButtonText>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="flex-1 py-3 bg-primary rounded-lg items-center justify-center ml-2"
+              className="flex-1 py-3  rounded-lg items-center justify-center ml-2"
               onPress={handleSubmit}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text className="text-white font-semibold">Create Quiz</Text>
+                <ButtonText color="white" className="text-white font-semibold">
+                  Create Quiz
+                </ButtonText>
               )}
             </TouchableOpacity>
           </View>

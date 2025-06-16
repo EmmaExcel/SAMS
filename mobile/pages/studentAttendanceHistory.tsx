@@ -24,6 +24,14 @@ import {
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  ButtonText,
+  Caption,
+  Heading3,
+  Heading4,
+  Subtitle,
+  Typography,
+} from "../component/ui/Typography";
 
 export default function StudentAttendanceHistory() {
   const navigation = useNavigation();
@@ -237,14 +245,13 @@ export default function StudentAttendanceHistory() {
   const renderHeader = () => (
     <View>
       <LinearGradient
-        colors={["#5b2333", "#7d3045"]}
+        colors={["#000", "#000"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
-          paddingVertical: 10,
+          paddingTop: 15,
+          paddingBottom: 16,
           paddingHorizontal: 16,
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
         }}
       >
         <View className="flex-row items-center justify-between mb-4 pt-10">
@@ -255,35 +262,59 @@ export default function StudentAttendanceHistory() {
             <Ionicons name="chevron-back" size={24} color="white" />
           </TouchableOpacity>
 
-          <Text className="text-white text-xl font-bold">My Attendance</Text>
+          <Heading4 color="white" className="text-white text-xl font-bold">
+            My Attendance
+          </Heading4>
 
           <View className="w-10 h-10" />
         </View>
 
         {/* Overall attendance stats */}
         <View className="bg-white/10 rounded-xl p-4 mt-1">
-          <Text className="text-white text-sm mb-2">Overall Attendance</Text>
+          <Typography
+            color="white"
+            variant="caption"
+            className="text-white text-sm mb-2"
+          >
+            Overall Attendance
+          </Typography>
           <View className="flex-row justify-between">
             {Object.keys(studentStats).length > 0 ? (
               <>
                 <View>
-                  <Text className="text-white text-2xl font-bold">
+                  <Heading4
+                    color="white"
+                    className="text-white text-2xl font-bold"
+                  >
                     {Object.values(studentStats).reduce(
                       (sum, stat) => sum + stat.attended,
                       0
                     )}
-                    <Text className="text-white text-lg font-normal"> / </Text>
+                    <Heading4
+                      color="white"
+                      className="text-white text-lg font-normal"
+                    >
+                      {" "}
+                      /{" "}
+                    </Heading4>
                     {Object.values(studentStats).reduce(
                       (sum, stat) => sum + stat.total,
                       0
                     )}
-                  </Text>
-                  <Text className="text-white/80 text-xs">
+                  </Heading4>
+                  <Typography
+                    variant="small"
+                    color="white"
+                    className="text-white/80 text-xs"
+                  >
                     Classes Attended
-                  </Text>
+                  </Typography>
                 </View>
                 <View>
-                  <Text className="text-white text-2xl font-bold">
+                  <Heading4
+                    color="white"
+                    className="text-white text-2xl font-bold"
+                  >
                     {Object.values(studentStats).reduce(
                       (sum, stat) => sum + stat.total,
                       0
@@ -301,8 +332,14 @@ export default function StudentAttendanceHistory() {
                         )
                       : 0}
                     %
-                  </Text>
-                  <Text className="text-white/80 text-xs">Attendance Rate</Text>
+                  </Heading4>
+                  <Typography
+                    variant="small"
+                    color="white"
+                    className="text-white/80 text-xs"
+                  >
+                    Attendance Rate
+                  </Typography>
                 </View>
               </>
             ) : (
@@ -314,7 +351,7 @@ export default function StudentAttendanceHistory() {
         </View>
       </LinearGradient>
 
-      {renderCourseFilter()}
+      <View className="bg-black">{renderCourseFilter()}</View>
     </View>
   );
 
@@ -332,10 +369,10 @@ export default function StudentAttendanceHistory() {
     if (uniqueCourses.length === 0) return null;
 
     return (
-      <View className="px-4 py-3 bg-white mb-3">
-        <Text className="text-sm font-medium text-gray-800 mb-2">
+      <View className="px-4 py-5  bg-[#057BFF] rounded-t-3xl">
+        <Subtitle color="white" className="  mb-2">
           Filter by Course:
-        </Text>
+        </Subtitle>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -343,36 +380,38 @@ export default function StudentAttendanceHistory() {
         >
           <TouchableOpacity
             className={`px-4 py-2 mr-2 rounded-xl ${
-              !selectedCourseId ? "bg-[#5b2333]" : "bg-gray-100"
+              !selectedCourseId ? "bg-[#081427]" : "bg-[#1e293b]/60"
             }`}
             onPress={() => handleCourseSelect(null as any)}
           >
-            <Text
+            <ButtonText
+              color="white"
               className={`font-semibold ${
                 !selectedCourseId ? "text-white" : "text-gray-800"
               }`}
             >
               All Courses
-            </Text>
+            </ButtonText>
           </TouchableOpacity>
 
           {uniqueCourses.map((course) => (
             <TouchableOpacity
               key={course.id}
               className={`px-4 py-2 mr-2 rounded-xl ${
-                selectedCourseId === course.id ? "bg-[#5b2333]" : "bg-gray-100"
+                selectedCourseId === course.id
+                  ? "bg-[#081427]"
+                  : "bg-[#1e293b]/60"
               }`}
               onPress={() => handleCourseSelect(course.id)}
             >
-              <Text
+              <ButtonText
+                color="white"
                 className={`font-semibold ${
-                  selectedCourseId === course.id
-                    ? "text-white"
-                    : "text-gray-800"
+                  selectedCourseId === course.id ? "text-white" : "text-white"
                 }`}
               >
                 {course.code}
-              </Text>
+              </ButtonText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -410,7 +449,7 @@ export default function StudentAttendanceHistory() {
 
     return (
       <TouchableOpacity
-        className="bg-white rounded-xl mx-4 mb-3 shadow-sm overflow-hidden"
+        className="rounded-2xl bg-[#111827]/80 mx-4 mb-3 shadow-sm overflow-hidden"
         style={{
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 1 },
@@ -421,44 +460,47 @@ export default function StudentAttendanceHistory() {
         onPress={() => viewAttendanceDetails(item)}
       >
         {/* Course header */}
-        <View className="bg-[#5b2333]/10 px-4 py-2 border-l-4 border-[#5b2333]">
+        <View className="bg-[#111827]/80 px-4 py-2 border-l-4 ">
           <View className="flex-row justify-between items-center">
-            <Text className="font-bold text-[#5b2333]">{item.courseCode}</Text>
+            <Caption color="grey">{item.courseCode}</Caption>
             <View
               className={`px-2 py-0.5 rounded-full ${
                 item.attended ? "bg-green-100" : "bg-red-100"
               }`}
             >
-              <Text
+              <Typography
+                variant="small"
                 className={`text-xs font-medium ${
                   item.attended ? "text-green-700" : "text-red-700"
                 }`}
               >
                 {item.attended ? "Present" : "Absent"}
-              </Text>
+              </Typography>
             </View>
           </View>
-          <Text className="text-sm text-gray-700 mt-0.5">
+          <Subtitle color="white" className="text-sm text-gray-700 mt-0.5">
             {item.courseTitle || "Unknown Course"}
-          </Text>
+          </Subtitle>
         </View>
 
         {/* Content */}
-        <View className="p-4">
+        <View className="p-4 bg-[#111827]/80">
           <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-lg font-bold text-gray-800">{date}</Text>
+            <Caption color="white" className="text-lg font-bold text-gray-800">
+              {date}
+            </Caption>
           </View>
 
           <View className="flex-row items-center mt-2">
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <Text className="text-sm text-gray-600 ml-1">
+            <Ionicons name="time-outline" size={16} color="#fff" />
+            <Caption color="white" className="text-sm text-gray-600 ml-1">
               {startTime} - {endTime}
-            </Text>
+            </Caption>
           </View>
         </View>
 
         {/* Footer */}
-        <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+        <View className="flex-row items-center justify-between px-4 py-2.5  border-t-[0.2px] border-neutral-50 bg-[#111827]/70">
           <View className="flex-row items-center">
             <Ionicons
               name={
@@ -469,15 +511,15 @@ export default function StudentAttendanceHistory() {
               size={16}
               color={item.attended ? "#16a34a" : "#dc2626"}
             />
-            <Text className="text-xs text-gray-500 ml-1">
+            <Caption color="white" className="text-xs text-gray-500 ml-1">
               {item.attended ? "You were present" : "You were absent"}
-            </Text>
+            </Caption>
           </View>
 
           <View className="flex-row items-center">
-            <Text className="text-xs font-medium text-[#5b2333] mr-1">
+            <Typography variant="small" color="white" className=" mr-1">
               View Details
-            </Text>
+            </Typography>
             <Ionicons name="chevron-forward" size={12} color="#5b2333" />
           </View>
         </View>
@@ -526,37 +568,69 @@ export default function StudentAttendanceHistory() {
     const missed = stats.total - stats.attended;
 
     return (
-      <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <Text className="text-base font-bold text-gray-800 mb-3">
+      <View className="bg-[#1f336c] rounded-xl p-4 mb-6">
+        <Subtitle
+          color="white"
+          className="text-base font-bold text-gray-800 mb-3"
+        >
           Course Attendance Stats
-        </Text>
+        </Subtitle>
 
         {/* Progress bar */}
         <View className="h-3 bg-gray-200 rounded-full mb-3">
           <View
-            className="h-3 bg-[#5b2333] rounded-full"
+            className="h-3 bg-[#1f336c] rounded-full"
             style={{ width: `${attendanceRate}%` }}
           />
         </View>
 
         <View className="flex-row justify-between">
           <View>
-            <Text className="text-2xl font-bold text-gray-800">
+            <Heading4
+              color="white"
+              className="text-2xl font-bold text-gray-800"
+            >
               {stats.attended}
-            </Text>
-            <Text className="text-xs text-gray-500">Classes Attended</Text>
+            </Heading4>
+            <Typography
+              variant="small"
+              color="white"
+              className="text-xs text-gray-500"
+            >
+              Classes Attended
+            </Typography>
           </View>
 
           <View>
-            <Text className="text-2xl font-bold text-gray-800">{missed}</Text>
-            <Text className="text-xs text-gray-500">Classes Missed</Text>
+            <Heading4
+              color="white"
+              className="text-2xl font-bold text-gray-800"
+            >
+              {missed}
+            </Heading4>
+            <Typography
+              variant="small"
+              color="white"
+              className="text-xs text-gray-500"
+            >
+              Classes Missed
+            </Typography>
           </View>
 
           <View>
-            <Text className="text-2xl font-bold text-gray-800">
+            <Subtitle
+              color="white"
+              className="text-2xl font-bold  text-gray-800"
+            >
               {attendanceRate}%
-            </Text>
-            <Text className="text-xs text-gray-500">Attendance Rate</Text>
+            </Subtitle>
+            <Typography
+              variant="small"
+              color="white"
+              className="text-xs text-gray-500"
+            >
+              Attendance Rate
+            </Typography>
           </View>
         </View>
       </View>
@@ -579,238 +653,286 @@ export default function StudentAttendanceHistory() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
-      {renderHeader()}
-      <FlatList
-        data={filteredRecords}
-        keyExtractor={(item) => item.id}
-        renderItem={renderAttendanceItem}
-        ListEmptyComponent={!loading ? renderEmptyState : null}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 70,
+    <View className="flex-1 bg-black">
+      <StatusBar barStyle="light-content" backgroundColor="#0000" />
+      <LinearGradient
+        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+        style={{
+          flex: 1,
+          minHeight: "100%",
+          borderTopRightRadius: 20,
+          borderTopLeftRadius: 20,
+          marginBottom: 200,
         }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#5b2333"]}
-            tintColor="#5b2333"
-          />
-        }
-        ListFooterComponent={
-          loading ? (
-            <View className="py-8 items-center">
-              <ActivityIndicator size="large" color="#5b2333" />
-              <Text className="mt-4 text-gray-500">
-                Loading attendance records...
-              </Text>
-            </View>
-          ) : filteredRecords.length > 0 ? (
-            <View className="py-4 items-center">
-              <Text className="text-gray-400 text-xs">
-                {filteredRecords.length} attendance records
-              </Text>
-            </View>
-          ) : null
-        }
-      />
-
-      {/* Attendance Details Modal */}
-      <Modal
-        visible={showDetailsModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={closeDetailsModal}
       >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl max-h-[85%]">
-            {/* Modal Header with Handle */}
-            <View className="items-center pt-2 pb-4 border-b border-gray-100">
-              <View className="w-10 h-1 bg-gray-300 rounded-full mb-4" />
-
-              <View className="flex-row items-center justify-between w-full px-6">
-                <Text className="text-xl font-bold text-gray-800">
-                  Attendance Details
-                </Text>
-                <TouchableOpacity onPress={closeDetailsModal}>
-                  <Ionicons name="close" size={24} color="#666" />
-                </TouchableOpacity>
+        {renderHeader()}
+        <FlatList
+          data={filteredRecords}
+          keyExtractor={(item) => item.id}
+          renderItem={renderAttendanceItem}
+          ListEmptyComponent={!loading ? renderEmptyState : null}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 70,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#fff"]}
+              tintColor="#fff"
+            />
+          }
+          ListFooterComponent={
+            loading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#fff" />
+                <Caption color="white" className="mt-4 text-gray-500">
+                  Loading attendance records...
+                </Caption>
               </View>
-            </View>
+            ) : filteredRecords.length > 0 ? (
+              <View className="py-4 items-center">
+                <Typography variant="small" color="white">
+                  {filteredRecords.length} attendance records
+                </Typography>
+              </View>
+            ) : null
+          }
+        />
 
-            <ScrollView className="p-6">
-              {selectedRecord && (
-                <>
-                  {/* Attendance Status */}
-                  <View
-                    className={`p-4 rounded-xl mb-6 ${
-                      selectedRecord.attended ? "bg-green-50" : "bg-red-50"
-                    }`}
+        {/* Attendance Details Modal */}
+        <Modal
+          visible={showDetailsModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeDetailsModal}
+        >
+          <View className="flex-1 justify-end bg-black/40">
+            <View className="bg-[#111827]  rounded-t-3xl max-h-[85%]">
+              {/* Modal Header with Handle */}
+              <View className="items-center pt-2 pb-4 border-b-[0.5px] border-gray-50/50">
+                <View className="w-10 h-1 bg-gray-300 rounded-full mb-4" />
+
+                <View className="flex-row items-center justify-between w-full px-6">
+                  <Heading3
+                    color="white"
+                    className="text-xl font-bold text-gray-800"
                   >
-                    <View className="flex-row items-center">
-                      <View
-                        className={`w-12 h-12 rounded-full ${
-                          selectedRecord.attended
-                            ? "bg-green-100"
-                            : "bg-red-100"
-                        } items-center justify-center mr-4`}
-                      >
-                        <Ionicons
-                          name={selectedRecord.attended ? "checkmark" : "close"}
-                          size={24}
-                          color={
-                            selectedRecord.attended ? "#16a34a" : "#dc2626"
-                          }
-                        />
-                      </View>
-                      <View>
-                        <Text
-                          className={`text-lg font-bold ${
+                    Attendance Details
+                  </Heading3>
+                  <TouchableOpacity onPress={closeDetailsModal}>
+                    <Ionicons name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <ScrollView className="p-6">
+                {selectedRecord && (
+                  <>
+                    {/* Attendance Status */}
+                    <View
+                      className={`p-4 rounded-xl mb-6 ${
+                        selectedRecord.attended ? "bg-green-50" : "bg-red-50"
+                      }`}
+                    >
+                      <View className="flex-row items-center">
+                        <View
+                          className={`w-12 h-12 rounded-full ${
                             selectedRecord.attended
-                              ? "text-green-700"
-                              : "text-red-700"
-                          }`}
+                              ? "bg-green-100"
+                              : "bg-red-100"
+                          } items-center justify-center mr-4`}
                         >
-                          {selectedRecord.attended ? "Present" : "Absent"}
-                        </Text>
-                        <Text className="text-sm text-gray-600">
-                          {selectedRecord.attended
-                            ? "You were marked present for this class"
-                            : "You were marked absent for this class"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Record Info Card */}
-                  <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="calendar" size={20} color="#5b2333" />
-                      </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">Date</Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {new Date(selectedRecord.date).toLocaleDateString(
-                            "en-US",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
+                          <Ionicons
+                            name={
+                              selectedRecord.attended ? "checkmark" : "close"
                             }
-                          )}
-                        </Text>
+                            size={24}
+                            color={
+                              selectedRecord.attended ? "#16a34a" : "#dc2626"
+                            }
+                          />
+                        </View>
+                        <View>
+                          <Subtitle
+                            color={
+                              selectedRecord.attended ? "#15803d" : "#5b2333"
+                            }
+                          >
+                            {selectedRecord.attended ? "Present" : "Absent"}
+                          </Subtitle>
+                          <Typography
+                            variant="small"
+                            className="text-sm !text-gray-600"
+                          >
+                            {selectedRecord.attended
+                              ? "You were marked present for this class"
+                              : "You were marked absent for this class"}
+                          </Typography>
+                        </View>
                       </View>
                     </View>
 
-                    <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="book" size={20} color="#5b2333" />
+                    {/* Record Info Card */}
+                    <View className="bg-[#1f336c] rounded-xl p-4 mb-6">
+                      <View className="flex-row items-center mb-3">
+                        <View className="w-10 h-10 rounded-full bg-[]/10 items-center justify-center mr-3">
+                          <Ionicons name="calendar" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Subtitle
+                            color="white"
+                            className="text-sm text-gray-500"
+                          >
+                            Date
+                          </Subtitle>
+                          <Caption
+                            color="white"
+                            className="text-base font-bold text-gray-800"
+                          >
+                            {new Date(selectedRecord.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </Caption>
+                        </View>
                       </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">Course</Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {selectedRecord.courseCode}:{" "}
-                          {selectedRecord.courseTitle}
-                        </Text>
+
+                      <View className="flex-row items-center mb-3">
+                        <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
+                          <Ionicons name="book" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Subtitle
+                            color="white"
+                            className="text-sm text-gray-500"
+                          >
+                            Course
+                          </Subtitle>
+                          <Caption
+                            color="white"
+                            className="text-base font-bold text-gray-800"
+                          >
+                            {selectedRecord.courseCode}:{" "}
+                            {selectedRecord.courseTitle}
+                          </Caption>
+                        </View>
+                      </View>
+
+                      <View className="flex-row items-center">
+                        <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
+                          <Ionicons name="time" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Subtitle
+                            color="white"
+                            className="text-sm text-gray-500"
+                          >
+                            Time
+                          </Subtitle>
+                          <Caption
+                            color="white"
+                            className="text-base font-bold text-gray-800"
+                          >
+                            {selectedRecord.startTime
+                              ? new Date(
+                                  selectedRecord.startTime.toDate
+                                    ? selectedRecord.startTime.toDate()
+                                    : selectedRecord.startTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                              : "N/A"}{" "}
+                            -
+                            {selectedRecord.endTime
+                              ? new Date(
+                                  selectedRecord.endTime.toDate
+                                    ? selectedRecord.endTime.toDate()
+                                    : selectedRecord.endTime
+                                ).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                              : "N/A"}
+                          </Caption>
+                        </View>
                       </View>
                     </View>
 
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="time" size={20} color="#5b2333" />
-                      </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">Time</Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {selectedRecord.startTime
-                            ? new Date(
-                                selectedRecord.startTime.toDate
-                                  ? selectedRecord.startTime.toDate()
-                                  : selectedRecord.startTime
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })
-                            : "N/A"}{" "}
-                          -
-                          {selectedRecord.endTime
-                            ? new Date(
-                                selectedRecord.endTime.toDate
-                                  ? selectedRecord.endTime.toDate()
-                                  : selectedRecord.endTime
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })
-                            : "N/A"}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
+                    {/* Course Stats */}
+                    {selectedRecord.courseId &&
+                      renderCourseStats(selectedRecord.courseId)}
 
-                  {/* Course Stats */}
-                  {selectedRecord.courseId &&
-                    renderCourseStats(selectedRecord.courseId)}
+                    {/* Attendance Method */}
+                    {selectedRecord.attended && (
+                      <View className="bg-[#1f336c] rounded-xl p-4 mb-6">
+                        <Subtitle
+                          color="white"
+                          className="text-base font-bold text-gray-800 mb-2"
+                        >
+                          Attendance Method
+                        </Subtitle>
 
-                  {/* Attendance Method */}
-                  {selectedRecord.attended && (
-                    <View className="bg-white rounded-xl p-4 mb-6 border border-gray-100">
-                      <Text className="text-base font-bold text-gray-800 mb-2">
-                        Attendance Method
-                      </Text>
-
-                      {(() => {
-                        const studentEntry =
-                          findStudentInRecord(selectedRecord);
-                        if (studentEntry) {
-                          return (
-                            <View className="flex-row items-center">
-                              <Ionicons
-                                name={
-                                  studentEntry.method === "automatic"
-                                    ? "wifi-outline"
+                        {(() => {
+                          const studentEntry =
+                            findStudentInRecord(selectedRecord);
+                          if (studentEntry) {
+                            return (
+                              <View className="flex-row items-center">
+                                <Ionicons
+                                  name={
+                                    studentEntry.method === "automatic"
+                                      ? "wifi-outline"
+                                      : studentEntry.method === "quiz"
+                                      ? "help-circle-outline"
+                                      : studentEntry.method === "scan"
+                                      ? "scan-outline"
+                                      : "person-add-outline"
+                                  }
+                                  size={20}
+                                  color="#ffff"
+                                />
+                                <Typography
+                                  variant="small"
+                                  color="white"
+                                  className="text-gray-700 ml-2"
+                                >
+                                  {studentEntry.method === "automatic"
+                                    ? "Automatic Detection"
                                     : studentEntry.method === "quiz"
-                                    ? "help-circle-outline"
+                                    ? "Quiz Completion"
                                     : studentEntry.method === "scan"
-                                    ? "scan-outline"
-                                    : "person-add-outline"
-                                }
-                                size={20}
-                                color="#5b2333"
-                              />
-                              <Text className="text-gray-700 ml-2">
-                                {studentEntry.method === "automatic"
-                                  ? "Automatic Detection"
-                                  : studentEntry.method === "quiz"
-                                  ? "Quiz Completion"
-                                  : studentEntry.method === "scan"
-                                  ? "Location Scan"
-                                  : "Manual Entry"}
-                              </Text>
-                            </View>
-                          );
-                        } else {
-                          return (
-                            <Text className="text-gray-500">
-                              Attendance method information not available
-                            </Text>
-                          );
-                        }
-                      })()}
-                    </View>
-                  )}
-                </>
-              )}
-            </ScrollView>
+                                    ? "Location Scan"
+                                    : "Manual Entry"}
+                                </Typography>
+                              </View>
+                            );
+                          } else {
+                            return (
+                              <Caption color="white" className="text-gray-500">
+                                Attendance method information not available
+                              </Caption>
+                            );
+                          }
+                        })()}
+                      </View>
+                    )}
+                  </>
+                )}
+              </ScrollView>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </LinearGradient>
     </View>
   );
 }

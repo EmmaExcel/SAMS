@@ -23,6 +23,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider } from "./context/themeContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { NetworkProvider } from "./context/NetworkProvider";
 
 SplashScreen.preventAutoHideAsync();
 export default function App() {
@@ -46,22 +47,24 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <ThemeProvider>
-        <NavigationContainer>
-          <AuthProvider>
-            <LocationProvider>
-              <AttendanceProvider>
-                <QuizProvider>
-                  <AppNavigator />
-                  {/* Global Quiz Popup that can appear on any screen */}
-                  {/* <QuizPopup /> */}
-                  {/* <QuizPopup /> */}
-                </QuizProvider>
-              </AttendanceProvider>
-            </LocationProvider>
-          </AuthProvider>
-        </NavigationContainer>
-      </ThemeProvider>
+      <NetworkProvider>
+        <ThemeProvider>
+          <NavigationContainer>
+            <AuthProvider>
+              <LocationProvider>
+                <AttendanceProvider>
+                  <QuizProvider>
+                    <AppNavigator />
+                    {/* Global Quiz Popup that can appear on any screen */}
+                    {/* <QuizPopup /> */}
+                    {/* <QuizPopup /> */}
+                  </QuizProvider>
+                </AttendanceProvider>
+              </LocationProvider>
+            </AuthProvider>
+          </NavigationContainer>
+        </ThemeProvider>
+      </NetworkProvider>
     </GestureHandlerRootView>
   );
 }

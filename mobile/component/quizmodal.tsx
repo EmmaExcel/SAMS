@@ -1,13 +1,6 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  Button,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { Modal, View, Text, TextInput, TouchableOpacity } from "react-native";
+import { ButtonText, Caption, Subtitle, Typography } from "./ui/Typography";
 
 interface QuizModalProps {
   visible: boolean;
@@ -43,31 +36,51 @@ const QuizModal: React.FC<QuizModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <View style={styles.modalView}>
+      <View className="flex-1 justify-center items-center bg-black/50">
+        <View className="w-[300px] p-5 bg-[#111827] rounded-xl items-center">
           {courseInfo && (
-            <View style={styles.courseInfoContainer}>
-              <Text style={styles.courseCode}>{courseInfo.code}</Text>
-              <Text style={styles.courseTitle}>{courseInfo.title}</Text>
+            <View className="bg-[#111827] p-2.5 rounded mb-4 w-full items-center">
+              <Subtitle
+                color="white"
+                className="font-bold text-base text-violet-700"
+              >
+                {courseInfo.code}
+              </Subtitle>
+              <Typography
+                variant="small"
+                color="white"
+                className=" !text-gray-700 mt-1"
+              >
+                {courseInfo.title}
+              </Typography>
             </View>
           )}
 
-          <Text className="text-lg mb-2">{question}</Text>
-          <Text className="text-sm mb-4 text-violet-600">
-            Worth {points} {points === 1 ? "point" : "points"}
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your answer"
-            value={answer}
-            onChangeText={setAnswer}
-          />
-          <View style={styles.buttonContainer}>
+          <Caption color="white" className="text-lg mb-2">
+            {question}
+          </Caption>
+          <Typography variant="small" className="text-sm mb-4 !text-gray-600">
+            {points === 1 ? "point" : "points"}
+            {" : "}
+            {points}
+          </Typography>
+
+          <View className="flex-row items-center bg-white/10 rounded-md px-1 py-1 mb-5">
+            <TextInput
+              className="w-full p-2.5   text-white rounded "
+              placeholder="Enter your answer"
+              value={answer}
+              onChangeText={setAnswer}
+            />
+          </View>
+          <View className="flex-row justify-center w-full">
             <TouchableOpacity
-              className="w-full flex-col items-center py-2 rounded-lg bg-violet-600"
+              className="w-full flex-col items-center py-2 rounded-lg bg-[#666]"
               onPress={handleSubmit}
             >
-              <Text className="text-lg text-white">submit</Text>
+              <ButtonText color="white" className="text-lg text-white">
+                Submit
+              </ButtonText>
             </TouchableOpacity>
           </View>
         </View>
@@ -75,53 +88,5 @@ const QuizModal: React.FC<QuizModalProps> = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalView: {
-    width: 300,
-    padding: 20,
-    backgroundColor: "white",
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-  input: {
-    width: "100%",
-    padding: 10,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    width: "100%",
-  },
-  courseInfoContainer: {
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-    width: "100%",
-    alignItems: "center",
-  },
-  courseCode: {
-    fontWeight: "bold",
-    fontSize: 16,
-    color: "#6200ee",
-  },
-  courseTitle: {
-    fontSize: 14,
-    color: "#333",
-    marginTop: 5,
-  },
-});
 
 export default QuizModal;

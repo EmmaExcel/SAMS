@@ -32,6 +32,15 @@ import { getDistance } from "geolib";
 import { useAttendance } from "../context/attendanceContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  Body,
+  ButtonText,
+  Caption,
+  Heading3,
+  Heading4,
+  Subtitle,
+  Typography,
+} from "../component/ui/Typography";
 
 export default function AttendanceHistory() {
   const navigation = useNavigation();
@@ -146,7 +155,6 @@ export default function AttendanceHistory() {
     }
   };
 
-  // Filter records by course
   const filterRecordsByCourse = (
     courseId: string,
     records = attendanceRecords
@@ -164,7 +172,6 @@ export default function AttendanceHistory() {
     setFilteredRecords(filtered);
   };
 
-  // Filter records by search query
   const getFilteredData = () => {
     if (!searchQuery.trim()) {
       return filteredRecords;
@@ -199,7 +206,7 @@ export default function AttendanceHistory() {
   const closeEditModal = () => {
     setSelectedRecord(null);
     setShowEditModal(false);
-    setModalView("details"); // Reset to details view when closing
+    setModalView("details");
   };
 
   const openAddStudentModal = () => {
@@ -331,19 +338,16 @@ export default function AttendanceHistory() {
     loadAttendanceHistory();
   };
 
-  // Render header with title and filter options
   const renderHeader = () => (
-    <View>
+    <View className="">
       <LinearGradient
-        colors={["#5b2333", "#7d3045"]}
+        colors={["#000", "#000"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
           paddingTop: 50,
           paddingBottom: 16,
           paddingHorizontal: 16,
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
         }}
       >
         <View className="flex-row items-center justify-between mb-4">
@@ -354,9 +358,9 @@ export default function AttendanceHistory() {
             <Ionicons name="chevron-back" size={22} color="white" />
           </TouchableOpacity>
 
-          <Text className="text-white text-xl font-bold">
+          <Heading4 color="white" className="text-white text-xl font-bold">
             Attendance History
-          </Text>
+          </Heading4>
 
           <View className="w-10 h-10" />
         </View>
@@ -374,7 +378,7 @@ export default function AttendanceHistory() {
         </View>
       </LinearGradient>
 
-      {renderCourseFilter()}
+      <View className="bg-black">{renderCourseFilter()}</View>
     </View>
   );
 
@@ -382,47 +386,49 @@ export default function AttendanceHistory() {
     if (courses.length === 0) return null;
 
     return (
-      <View className="px-4 py-3 bg-white mb-4">
-        <Text className="text-sm font-medium text-gray-700 mb-2">
+      <View className="px-4 py-5  bg-[#057BFF] rounded-t-3xl">
+        <Subtitle color="white" className="  mb-2">
           Filter by Course:
-        </Text>
+        </Subtitle>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="flex-row"
+          className="flex-row "
         >
           <TouchableOpacity
             className={`px-4 py-2 mr-2 rounded-xl ${
-              !selectedCourseId ? "bg-[#5b2333]" : "bg-gray-200"
+              !selectedCourseId ? "bg-[#081427]" : "bg-[#1e293b]/60"
             }`}
             onPress={() => handleCourseSelect(null)}
           >
-            <Text
+            <ButtonText
+              color="white"
               className={`font-medium ${
-                !selectedCourseId ? "text-white" : "text-gray-800"
+                !selectedCourseId ? "text-white" : "text-white"
               }`}
             >
               All Courses
-            </Text>
+            </ButtonText>
           </TouchableOpacity>
 
           {courses.map((course) => (
             <TouchableOpacity
               key={course.id}
               className={`px-4 py-2 mr-2 rounded-xl ${
-                selectedCourseId === course.id ? "bg-[#5b2333]" : "bg-gray-100"
+                selectedCourseId === course.id
+                  ? "bg-[#081427]"
+                  : "bg-[#1e293b]/60"
               }`}
               onPress={() => handleCourseSelect(course.id)}
             >
-              <Text
+              <ButtonText
+                color="white"
                 className={`font-medium ${
-                  selectedCourseId === course.id
-                    ? "text-white"
-                    : "text-gray-800"
+                  selectedCourseId === course.id ? "text-white" : "text-white"
                 }`}
               >
                 {course.code}
-              </Text>
+              </ButtonText>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -462,7 +468,7 @@ export default function AttendanceHistory() {
 
     return (
       <TouchableOpacity
-        className="bg-white rounded-xl mx-4 mb-3 shadow-sm overflow-hidden"
+        className="rounded-2xl bg-[#111827] mx-4 mb-3 shadow-sm overflow-hidden"
         style={{
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 1 },
@@ -474,17 +480,17 @@ export default function AttendanceHistory() {
       >
         {/* Course header */}
         {item.courseCode && (
-          <View className="bg-[#5b2333]/10 px-4 py-2 border-l-4 border-[#5b2333]">
+          <View className="bg-[#111827] px-4 py-2 border-l-4 ">
             <View className="flex-row justify-between items-center">
-              <Text className="font-bold text-[#5b2333]">
-                {item.courseCode}
-              </Text>
+              <Subtitle color="white" className="text-sm text-gray-700 mt-0.5">
+                {item.courseTitle || "Unknown Course"}
+              </Subtitle>
               <View
                 className={`px-2 py-0.5 rounded-full ${
-                  item.mode === "automatic" ? "bg-blue-100" : "bg-purple-100"
+                  item.mode === "automatic" ? "bg-blue-300" : "bg-purple-100"
                 }`}
               >
-                <Text
+                <Caption
                   className={`text-xs font-medium ${
                     item.mode === "automatic"
                       ? "text-blue-700"
@@ -492,51 +498,56 @@ export default function AttendanceHistory() {
                   }`}
                 >
                   {item.mode === "automatic" ? "Automatic" : "Quiz-based"}
-                </Text>
+                </Caption>
               </View>
             </View>
-            <Text className="text-sm text-gray-700 mt-0.5">
-              {item.courseTitle || "Unknown Course"}
-            </Text>
+
+            <Caption color="grey">{item.courseCode}</Caption>
           </View>
         )}
 
         {/* Content */}
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-lg font-bold text-gray-800">{date}</Text>
+            <Caption color="white" className="text-lg font-bold text-gray-800">
+              {date}
+            </Caption>
             <View className="bg-green-100 px-2 py-1 rounded-full">
-              <Text className="text-xs font-medium text-green-700">
+              <Typography
+                variant="small"
+                color="black"
+                className="text-xs font-medium text-green-700"
+              >
                 {studentCount} students
-              </Text>
+              </Typography>
             </View>
           </View>
 
           {startTime && (
             <View className="flex-row items-center mt-2">
-              <Ionicons name="time-outline" size={16} color="#666" />
-              <Text className="text-sm text-gray-600 ml-1">
+              <Ionicons name="time-outline" size={16} color="#fff" />
+              <Caption color="white" className="text-sm text-gray-600 ml-1">
                 {startTime} {endTime ? `- ${endTime}` : ""}
-              </Text>
+              </Caption>
             </View>
           )}
         </View>
 
         {/* Footer */}
-        <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 border-t border-gray-100">
+        <View className="flex-row items-center justify-between px-4 py-2.5  border-t-[0.2px] border-neutral-50">
           <View className="flex-row items-center">
-            <Ionicons name="people-outline" size={16} color="#666" />
-            <Text className="text-xs text-gray-500 ml-1">
-              {studentCount} {studentCount === 1 ? "student" : "students"}{" "}
+            <Ionicons name="people-outline" size={16} color="#fff" />
+            <Caption color="white" className=" ml-1">
+              {studentCount} {studentCount === 1 ? " student" : " students"}{" "}
               present
-            </Text>
+            </Caption>
           </View>
 
           <View className="flex-row items-center">
-            <Text className="text-xs font-medium text-[#5b2333] mr-1">
+            <Typography variant="small" color="white" className=" mr-1">
               View Details
-            </Text>
-            <Ionicons name="chevron-forward" size={12} color="#5b2333" />
+            </Typography>
+            <Ionicons name="chevron-forward" size={12} color="#fff" />
           </View>
         </View>
       </TouchableOpacity>
@@ -578,24 +589,31 @@ export default function AttendanceHistory() {
     const methodColors = getMethodColor(item.method);
 
     return (
-      <View className="bg-white p-4 rounded-xl mb-2.5 shadow-sm border border-gray-100">
+      <View className="bg-[#111827] p-4 rounded-xl mb-2.5 border-[0.5px] border-neutral-600 shadow-sm ">
         <View className="flex-row justify-between items-start">
           <View className="flex-1">
-            <Text className="text-base font-bold text-gray-800">
+            <Caption
+              color="white"
+              className="text-base font-bold text-gray-800"
+            >
               {item.name || "Unknown"}
-            </Text>
-            <Text className="text-sm text-gray-600 mt-0.5">
+            </Caption>
+            <Caption color="gray" className=" mt-0.5 line-clamp-1">
               ID: {item.studentId || item.id || "Unknown"}
-            </Text>
+            </Caption>
             {item.email && item.email !== "Unknown" && (
-              <Text className="text-sm text-gray-600 mt-0.5">{item.email}</Text>
+              <Caption color="white" className="text-sm text-gray-600 mt-0.5">
+                {item.email}
+              </Caption>
             )}
           </View>
 
           <View
             className={`px-2.5 py-1 rounded-full ${methodColors.split(" ")[0]}`}
           >
-            <Text
+            <Typography
+              color="black"
+              variant="small"
               className={`text-xs font-medium ${methodColors.split(" ")[1]}`}
             >
               {item.method === "automatic"
@@ -605,15 +623,15 @@ export default function AttendanceHistory() {
                 : item.method === "scan"
                 ? "Location Scan"
                 : "Manual Entry"}
-            </Text>
+            </Typography>
           </View>
         </View>
 
         <View className="flex-row items-center mt-3 pt-2 border-t border-gray-100">
-          <Ionicons name="time-outline" size={14} color="#9ca3af" />
-          <Text className="text-xs text-gray-500 ml-1">
+          <Ionicons name="time-outline" size={14} color="#fff" />
+          <Caption color="white" className="text-xs text-gray-500 ml-1">
             Recorded at {timestamp}
-          </Text>
+          </Caption>
         </View>
       </View>
     );
@@ -653,262 +671,312 @@ export default function AttendanceHistory() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
-      {renderHeader()}
-      <FlatList
-        data={getFilteredData()}
-        keyExtractor={(item) => item.id}
-        renderItem={renderAttendanceItem}
-        ListEmptyComponent={!loading ? renderEmptyState : null}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 70,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#5b2333"]}
-            tintColor="#5b2333"
-          />
-        }
-        ListFooterComponent={
-          loading ? (
-            <View className="py-8 items-center">
-              <ActivityIndicator size="large" color="#5b2333" />
-              <Text className="mt-4 text-gray-500">
-                Loading attendance records...
-              </Text>
-            </View>
-          ) : getFilteredData().length > 0 ? (
-            <View className="py-4 items-center">
-              <Text className="text-gray-400 text-xs">
-                {getFilteredData().length} attendance records
-              </Text>
-            </View>
-          ) : null
-        }
-      />
-
-      <Modal
-        visible={showEditModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={closeEditModal}
-      >
-        <View className="flex-1 justify-end bg-black/50">
-          <View className="bg-white rounded-t-3xl max-h-[85%]">
-            {/* Modal Header with Handle */}
-            <View className="items-center pt-2 pb-4 border-b border-gray-100">
-              <View className="w-10 h-1 bg-gray-300 rounded-full mb-4" />
-
-              <View className="flex-row items-center justify-between w-full px-6">
-                <Text className="text-xl font-bold text-gray-800">
-                  {modalView === "details"
-                    ? "Attendance Details"
-                    : "Add Student"}
-                </Text>
-                <TouchableOpacity onPress={closeEditModal}>
-                  <Ionicons name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {modalView === "details" ? (
-              // Details View
-              <ScrollView className="p-6">
-                {/* Record Info Card */}
-                {selectedRecord && (
-                  <View className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="calendar" size={20} color="#5b2333" />
-                      </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">Date</Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {new Date(selectedRecord.date).toLocaleDateString(
-                            "en-US",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="book" size={20} color="#5b2333" />
-                      </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">Course</Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {selectedRecord.courseCode || "Unknown"}:{" "}
-                          {selectedRecord.courseTitle || ""}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-[#5b2333]/10 items-center justify-center mr-3">
-                        <Ionicons name="people" size={20} color="#5b2333" />
-                      </View>
-                      <View>
-                        <Text className="text-sm text-gray-500">
-                          Students Present
-                        </Text>
-                        <Text className="text-base font-bold text-gray-800">
-                          {selectedRecord.students?.length || 0} students
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-
-                {/* Action Buttons */}
-                <View className="flex-row justify-between mb-6">
-                  <TouchableOpacity
-                    className="flex-1 py-3.5 rounded-xl bg-[#5b2333] items-center justify-center mr-3"
-                    onPress={scanForStudents}
-                    disabled={scanning}
-                  >
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="scan-outline"
-                        size={18}
-                        color="white"
-                        className="mr-2"
-                      />
-                      <Text className="text-white font-bold">
-                        {scanning ? "Scanning..." : "Scan for Students"}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    className="flex-1 py-3.5 rounded-xl bg-white border border-[#5b2333] items-center justify-center"
-                    onPress={openAddStudentModal}
-                  >
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name="add-circle-outline"
-                        size={18}
-                        color="#5b2333"
-                        className="mr-2"
-                      />
-                      <Text className="text-[#5b2333] font-bold">
-                        Add Manually
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Students List */}
-                <Text className="text-lg font-bold text-gray-800 mb-3">
-                  Students ({selectedRecord?.students?.length || 0})
-                </Text>
-
-                {selectedRecord?.students?.length > 0 ? (
-                  selectedRecord.students.map((student: any, index: number) => (
-                    <View key={`${student.id || student.studentId || index}`}>
-                      {renderStudentItem({ item: student })}
-                    </View>
-                  ))
-                ) : (
-                  <View className="bg-gray-50 rounded-xl p-6 items-center">
-                    <Ionicons name="people-outline" size={40} color="#9ca3af" />
-                    <Text className="text-base text-gray-600 text-center mt-3">
-                      No students in this record
-                    </Text>
-                    <Text className="text-sm text-gray-500 text-center mt-1">
-                      Use the buttons above to add students
-                    </Text>
-                  </View>
-                )}
-              </ScrollView>
-            ) : (
-              // Add Student View
-              <View className="p-6">
-                <Text className="text-lg font-bold text-gray-800 mb-5">
-                  Add Student Manually
-                </Text>
-
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-gray-700 mb-1">
-                    Student ID / Matric Number
-                  </Text>
-                  <TextInput
-                    className="border border-gray-300 rounded-xl p-3.5 bg-gray-50"
-                    placeholder="Enter student ID"
-                    value={studentId}
-                    onChangeText={setStudentId}
-                  />
-                </View>
-
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-gray-700 mb-1">
-                    Student Name
-                  </Text>
-                  <TextInput
-                    className="border border-gray-300 rounded-xl p-3.5 bg-gray-50"
-                    placeholder="Enter student name"
-                    value={studentName}
-                    onChangeText={setStudentName}
-                  />
-                </View>
-
-                <View className="mb-6">
-                  <Text className="text-sm font-medium text-gray-700 mb-1">
-                    Student Email (Optional)
-                  </Text>
-                  <TextInput
-                    className="border border-gray-300 rounded-xl p-3.5 bg-gray-50"
-                    placeholder="Enter student email"
-                    value={studentEmail}
-                    onChangeText={setStudentEmail}
-                    keyboardType="email-address"
-                  />
-                </View>
-
-                <View className="flex-row justify-between">
-                  <TouchableOpacity
-                    className="flex-1 py-3.5 rounded-xl bg-gray-200 items-center justify-center mr-3"
-                    onPress={closeAddStudentModal}
-                  >
-                    <Text className="text-gray-700 font-bold">Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    className="flex-1 py-3.5 rounded-xl bg-[#5b2333] items-center justify-center"
-                    onPress={addStudentManually}
-                  >
-                    <Text className="text-white font-bold">Add Student</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      <TouchableOpacity
-        className="absolute bottom-24 right-6 w-14 h-14 rounded-full bg-[#5b2333] items-center justify-center shadow-lg"
+    <View className="flex-1 bg-black">
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
         style={{
-          shadowColor: "#5b2333",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 8,
+          flex: 1,
+          minHeight: "100%",
+          borderTopRightRadius: 20,
+          borderTopLeftRadius: 20,
+          marginBottom: 200,
         }}
-        onPress={() => navigation.navigate("Attendance" as never)}
       >
-        <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
+        {renderHeader()}
+        <FlatList
+          data={getFilteredData()}
+          keyExtractor={(item) => item.id}
+          renderItem={renderAttendanceItem}
+          ListEmptyComponent={!loading ? renderEmptyState : null}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 70,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#5b2333"]}
+              tintColor="#5b2333"
+            />
+          }
+          ListFooterComponent={
+            loading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#fff" />
+                <Caption color="white" className="mt-4 text-gray-500">
+                  Loading attendance records...
+                </Caption>
+              </View>
+            ) : getFilteredData().length > 0 ? (
+              <View className="py-4 items-center">
+                <Caption color="white" className="text-gray-400 text-xs">
+                  {getFilteredData().length} attendance records
+                </Caption>
+              </View>
+            ) : null
+          }
+        />
+
+        <Modal
+          visible={showEditModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={closeEditModal}
+        >
+          <View className="flex-1 justify-end bg-black/40">
+            <View className="bg-[#111827] rounded-t-3xl max-h-[85%]">
+              {/* Header with handle */}
+              <View className="items-center pt-2 pb-4 border-b border-neutral-500/30">
+                <View className="w-10 h-1 bg-[#ffffff] rounded-full mb-4" />
+                <View className="flex-row items-center justify-between w-full px-6">
+                  <Heading3 color="white">
+                    {modalView === "details"
+                      ? "Attendance Details"
+                      : "Add Student"}
+                  </Heading3>
+                  <TouchableOpacity onPress={closeEditModal}>
+                    <Ionicons name="close" size={24} color="#ffff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {modalView === "details" ? (
+                <ScrollView className="p-6">
+                  {/* Info card */}
+                  {selectedRecord && (
+                    <View className="bg-[#1f336c] rounded-xl p-4 mb-6">
+                      <View className="flex-row items-center mb-3">
+                        <View className="w-10 h-10 rounded-full bg-[#3b5fe2]/20 items-center justify-center mr-3">
+                          <Ionicons name="calendar" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Caption
+                            color="gray"
+                            className="text-sm text-gray-400"
+                          >
+                            Date
+                          </Caption>
+                          <Caption
+                            color="white"
+                            className="text-base font-bold text-white"
+                          >
+                            {new Date(selectedRecord.date).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "long",
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </Caption>
+                        </View>
+                      </View>
+
+                      <View className="flex-row items-center mb-3">
+                        <View className="w-10 h-10 rounded-full bg-[#3b5fe2]/20 items-center justify-center mr-3">
+                          <Ionicons name="book" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Caption
+                            color="grey"
+                            className="text-sm text-gray-400"
+                          >
+                            Course
+                          </Caption>
+                          <Caption color="white">
+                            {selectedRecord.courseCode || "Unknown"}:{"   "}
+                            {selectedRecord.courseTitle || ""}
+                          </Caption>
+                        </View>
+                      </View>
+
+                      <View className="flex-row items-center">
+                        <View className="w-10 h-10 rounded-full bg-[#3b5fe2]/20 items-center justify-center mr-3">
+                          <Ionicons name="people" size={20} color="#fff" />
+                        </View>
+                        <View>
+                          <Caption color="gray">Students Present</Caption>
+                          <Caption color="white">
+                            {selectedRecord.students?.length || 0} students
+                          </Caption>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Action Buttons */}
+                  <View className="flex-row justify-between mb-6">
+                    <TouchableOpacity
+                      className="flex-1 py-3.5 rounded-xl bg-[#1f336c] items-center justify-center mr-3"
+                      onPress={scanForStudents}
+                      disabled={scanning}
+                    >
+                      <View className="flex-row items-center">
+                        <Ionicons
+                          name="scan-outline"
+                          size={18}
+                          color="white"
+                          className="mr-2"
+                        />
+                        <Caption color="white">
+                          {scanning ? "Scanning..." : "Scan for Students"}
+                        </Caption>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="flex-1 py-3.5 rounded-xl border border-[#057BFF] items-center justify-center"
+                      onPress={openAddStudentModal}
+                    >
+                      <View className="flex-row items-center">
+                        <Ionicons
+                          name="add-circle-outline"
+                          size={18}
+                          color="#057BFF"
+                          className="mr-2"
+                        />
+                        <Caption
+                          color="#057BFF"
+                          className="text-[#057BFF] font-bold"
+                        >
+                          Add Manually
+                        </Caption>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Students List */}
+                  <Subtitle
+                    color="white"
+                    className="text-lg font-bold text-white mb-3"
+                  >
+                    Students ({selectedRecord?.students?.length || 0})
+                  </Subtitle>
+
+                  {selectedRecord?.students?.length > 0 ? (
+                    selectedRecord.students.map(
+                      (student: any, index: number) => (
+                        <View
+                          key={`${student.id || student.studentId || index}`}
+                        >
+                          {renderStudentItem({ item: student })}
+                        </View>
+                      )
+                    )
+                  ) : (
+                    <View className="bg-[#1e3fa0]/10 rounded-xl p-6 items-center">
+                      <Ionicons
+                        name="people-outline"
+                        size={40}
+                        color="#9ca3af"
+                      />
+                      <Text className="text-base text-gray-300 text-center mt-3">
+                        No students in this record
+                      </Text>
+                      <Text className="text-sm text-gray-400 text-center mt-1">
+                        Use the buttons above to add students
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+              ) : (
+                <View className="p-6">
+                  <Subtitle
+                    color="white"
+                    className="text-lg font-bold text-white mb-5"
+                  >
+                    Add Student Manually
+                  </Subtitle>
+
+                  {/* Input Fields */}
+                  <View className="mb-4">
+                    <Caption
+                      color="white"
+                      className="text-sm font-medium text-gray-300 mb-1"
+                    >
+                      Student ID / Matric Number
+                    </Caption>
+                    <TextInput
+                      className="border border-[#1e3fa0]/30 rounded-xl p-3.5 bg-[#1e3fa0]/10 text-white placeholder:text-gray-500"
+                      placeholder="Enter student ID"
+                      placeholderTextColor="#6b7280"
+                      value={studentId}
+                      onChangeText={setStudentId}
+                    />
+                  </View>
+
+                  <View className="mb-4">
+                    <Caption
+                      color="white"
+                      className="text-sm font-medium text-gray-300 mb-1"
+                    >
+                      Student Name
+                    </Caption>
+                    <TextInput
+                      className="border border-[#1e3fa0]/30 rounded-xl p-3.5 bg-[#1e3fa0]/10 text-white placeholder:text-gray-500"
+                      placeholder="Enter student name"
+                      placeholderTextColor="#6b7280"
+                      value={studentName}
+                      onChangeText={setStudentName}
+                    />
+                  </View>
+
+                  <View className="mb-6">
+                    <Caption
+                      color="white"
+                      className="text-sm font-medium text-gray-300 mb-1"
+                    >
+                      Student Email (Optional)
+                    </Caption>
+                    <TextInput
+                      className="border border-[#1e3fa0]/30 rounded-xl p-3.5 bg-[#1e3fa0]/10 text-white placeholder:text-gray-500"
+                      placeholder="Enter student email"
+                      placeholderTextColor="#6b7280"
+                      value={studentEmail}
+                      onChangeText={setStudentEmail}
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  {/* Form Buttons */}
+                  <View className="flex-row justify-between">
+                    <TouchableOpacity
+                      className="flex-1 py-3.5 rounded-xl bg-[#1e3fa0]/20 items-center justify-center mr-3"
+                      onPress={closeAddStudentModal}
+                    >
+                      <ButtonText color="white">Cancel</ButtonText>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      className="flex-1 py-3.5 rounded-xl  bg-[#1f336c] items-center justify-center"
+                      onPress={addStudentManually}
+                    >
+                      <ButtonText color="white">Add Student</ButtonText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        <TouchableOpacity
+          className="absolute bottom-24 right-6 w-14 h-14 rounded-full bg-[#057BFF] items-center justify-center shadow-lg"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 8,
+          }}
+          onPress={() => navigation.navigate("Attendance" as never)}
+        >
+          <Ionicons name="add" size={28} color="white" />
+        </TouchableOpacity>
+      </LinearGradient>
     </View>
   );
 }

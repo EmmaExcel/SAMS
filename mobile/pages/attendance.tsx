@@ -35,6 +35,14 @@ import { useAuth } from "../context/authContext";
 import CreateQuizModal from "../component/CreateQuizModal";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  Body,
+  ButtonText,
+  Caption,
+  Heading4,
+  Subtitle,
+  Typography,
+} from "../component/ui/Typography";
 export default function Attendance() {
   const { location, radius: locationRadius, setRadius } = useLocation();
   const navigation = useNavigation();
@@ -589,30 +597,30 @@ export default function Attendance() {
 
   const renderCourseSelection = () => {
     if (loadingCourses) {
-      return <ActivityIndicator size="small" color="#5b2333" />;
+      return <ActivityIndicator size="small" color="#fff" />;
     }
 
     if (courses.length === 0) {
       return (
         <View className="p-5 items-center">
-          <Text className="text-base text-gray-600 text-center mb-4">
+          <Caption color="white" className=" text-center mb-4">
             You don't have any courses. Please add courses in your profile.
-          </Text>
+          </Caption>
           <TouchableOpacity
-            className="bg-[#5b2333] py-2 px-4 rounded"
+            className="bg-[#111827] py-2 px-4 rounded"
             onPress={() => navigation.navigate("LecturerProfileSetup" as never)}
           >
-            <Text className="text-white font-bold">Add Courses</Text>
+            <Caption color="white">Add Courses</Caption>
           </TouchableOpacity>
         </View>
       );
     }
 
     return (
-      <View className="mb-4 p-3 bg-[#f9f9f9] rounded-lg">
-        <Text className="text-base font-bold mb-2">
-          Select Course for Attendance:
-        </Text>
+      <View className="mb-4 p-3 bg-[#111827] mx-4 rounded-xl">
+        <Caption color="white" className="text-base font-bold mb-2">
+          Select Course for Attendance :
+        </Caption>
 
         <View className="flex-row flex-wrap mb-2">
           {courses.map((course) => {
@@ -621,17 +629,13 @@ export default function Attendance() {
               <TouchableOpacity
                 key={course.id}
                 className={`px-4 py-2 mr-2 mb-2 rounded ${
-                  isSelected ? "bg-[#5b2333]" : "bg-[#f0f0f0]"
+                  isSelected ? "bg-[#2f3641]" : "bg-[#1e293b]"
                 }`}
                 onPress={() => setSelectedCourse(course)}
               >
-                <Text
-                  className={`font-bold ${
-                    isSelected ? "text-white" : "text-[#333]"
-                  }`}
-                >
+                <ButtonText color={isSelected ? "white" : "black"}>
                   {course.code}
-                </Text>
+                </ButtonText>
               </TouchableOpacity>
             );
           })}
@@ -639,11 +643,13 @@ export default function Attendance() {
 
         {selectedCourse && (
           <View className="mt-1 p-3 bg-white rounded border border-[#ddd]">
-            <Text className="text-base font-bold">{selectedCourse.title}</Text>
-            <Text className="text-sm text-gray-600 mt-1">
-              Level: {selectedCourse.level} | Department:{" "}
+            <Subtitle className="text-base font-bold">
+              {selectedCourse.title}
+            </Subtitle>
+            <Caption className="text-sm text-gray-600 mt-1">
+              Level: {selectedCourse.level} | Department:{"  "}
               {selectedCourse.department}
-            </Text>
+            </Caption>
           </View>
         )}
       </View>
@@ -660,12 +666,12 @@ export default function Attendance() {
       : "Unknown";
 
     return (
-      <View className="bg-white p-4 mx-4 rounded-lg mb-3 shadow shadow-black/20 border-l-4 border-primary">
+      <View className="bg-[#111827] p-4 mx-4 rounded-lg mb-3 shadow shadow-black/20 border-l-4 border-primary">
         <View className="flex-row justify-between items-start">
           <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-800">
+            <Subtitle color="white" className="capitalize">
               {item.name || "Unknown Student"}
-            </Text>
+            </Subtitle>
             {item.studentId && item.studentId !== "Unknown" && (
               <Text className="text-sm text-gray-600 mt-1">
                 Student ID: {item.studentId}
@@ -673,33 +679,49 @@ export default function Attendance() {
             )}
           </View>
 
-          <View className="bg-gray-100 px-3 py-1 rounded-full">
-            <Text className="text-xs font-medium text-primary">
+          <View className="bg-gray-500/50 px-3 py-1 rounded-full">
+            <Typography variant="small" color="white">
               {item.method === "automatic" ? "Automatic" : "Quiz"}
-            </Text>
+            </Typography>
           </View>
         </View>
 
-        <View className="mt-3 pt-3 border-t border-gray-100">
+        <View className="mt-3 pt-3 border-t-[0.5px] border-gray-50/50">
           {item.email && (
             <View className="flex-row items-center mb-1">
-              <Text className="text-sm text-gray-500 w-16 font-semibold">
+              <Typography
+                variant="small"
+                color="white"
+                className="text-sm text-gray-500 w-16 font-semibold"
+              >
                 Email:
-              </Text>
-              <Text className="text-sm text-gray-700 flex-1">{item.email}</Text>
+              </Typography>
+              <Typography
+                variant="small"
+                color="white"
+                className="text-sm text-gray-700 flex-1"
+              >
+                {item.email}
+              </Typography>
             </View>
           )}
 
           <View className="flex-row items-center">
-            <Text className="text-sm text-gray-500 w-16  font-semibold">
+            <Typography color="white" variant="small" className=" w-16  ">
               ID:
-            </Text>
-            <Text className="text-sm text-gray-700 flex-1">{item.id}</Text>
+            </Typography>
+            <Typography
+              color="white"
+              variant="small"
+              className=" flex-1 line-clamp-1 "
+            >
+              {item.id}
+            </Typography>
           </View>
         </View>
 
-        <View className="mt-3 bg-gray-50 p-2 rounded">
-          <Text className="text-xs text-gray-500 italic">
+        <View className="mt-3 bg-gray-500/40 p-2 rounded">
+          <Typography variant="small" color="white" className=" italic">
             Recorded:{" "}
             {new Date(item.timestamp).toLocaleTimeString([], {
               hour: "2-digit",
@@ -707,20 +729,18 @@ export default function Attendance() {
               hour12: true,
               second: "2-digit",
             })}
-          </Text>
+          </Typography>
         </View>
       </View>
     );
   };
 
   return (
-    <View className="flex-1 bg-secondary">
+    <View className="flex-1 bg-black">
       <LinearGradient
-        colors={["#5b2333", "#7d3045"]}
+        colors={["#000", "#000"]}
         style={{
           padding: 30,
-          borderBottomRightRadius: 20,
-          borderBottomLeftRadius: 20,
           marginBottom: 10,
         }}
       >
@@ -728,263 +748,298 @@ export default function Attendance() {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back-outline" size={24} color="white" />
           </TouchableOpacity>
-          <Text className=" text-white text-2xl font-semibold">Attendance</Text>
+          <Heading4 color="white">Attendance</Heading4>
 
           <Text></Text>
         </View>
       </LinearGradient>
 
-      <View className="mx-4 my-2">
-        {isAttendanceActive ? (
-          <View className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-            <View className="bg-primary px-4 py-3">
-              <View className="flex-row justify-between items-center">
-                <View className="flex-row items-center">
-                  <Ionicons name="checkmark-circle" size={20} color="white" />
-                  <Text className="text-white font-bold text-base ml-2 capitalize">
-                    Attendance Active
-                  </Text>
-                </View>
-                <View className="bg-white/20 px-3 py-1 rounded-full">
-                  <Text className="text-white text-xs font-medium capitalize">
-                    {attendanceMode} Mode
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View className="p-4">
-              <View className="flex-row items-center mb-3">
-                <Ionicons name="book-outline" size={18} color="#666" />
-                <Text className="text-gray-800 ml-2 font-medium">
-                  {selectedCourse?.code}: {selectedCourse?.title}
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between mb-4">
-                <View className="flex-row items-center">
-                  <Ionicons name="time-outline" size={16} color="#666" />
-                  <Text className="text-gray-600 text-sm ml-2">
-                    Started:{" "}
-                    {attendanceStartTime?.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                </View>
-
-                <View className="flex-row items-center">
-                  <Ionicons name="people-outline" size={16} color="#666" />
-                  <Text className="text-gray-600 text-sm ml-2">
-                    {studentsInAttendance.length} students
-                  </Text>
-                </View>
-              </View>
-
-              <View className="bg-gray-50 p-3 rounded-lg">
-                <Text className="text-gray-500 text-xs mb-1">
-                  TIME REMAINING
-                </Text>
-                <View className="flex-row items-center">
-                  <Ionicons name="alarm-outline" size={20} color="#5b2333" />
-                  <Text className="text-xl font-bold text-primary ml-2">
-                    {formatTimeRemaining()}
-                  </Text>
-                </View>
-                <View className="mt-2 w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-                  <View
-                    className="bg-primary h-full"
-                    style={{
-                      width: `${
-                        timeRemaining
-                          ? (timeRemaining / (attendanceDuration * 60)) * 100
-                          : 0
-                      }%`,
-                    }}
-                  />
-                </View>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <View className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 items-center">
-            <Ionicons name="time-outline" size={28} color="#9ca3af" />
-            <Text className="font-semibold text-gray-700 text-lg text-center mt-2">
-              No Active Attendance Session
-            </Text>
-            <Text className="text-gray-500 text-sm text-center mt-1">
-              Start an attendance session to track student presence
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {!isAttendanceActive && renderCourseSelection()}
-
-      <View className="m-4">
-        {/* First row of buttons */}
-        <View className="flex-row justify-between mb-3">
-          <TouchableOpacity
-            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
-              isAttendanceActive ? "bg-gray-200" : "bg-primary"
-            }`}
-            onPress={handleStartAttendance}
-            disabled={isAttendanceActive}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="play-circle-outline"
-                size={18}
-                color={isAttendanceActive ? "#9ca3af" : "white"}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                className={`font-semibold ${
-                  isAttendanceActive ? "text-gray-500" : "text-white"
-                }`}
-              >
-                Start Attendance
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
-              !isAttendanceActive ? "bg-gray-200" : "bg-[#e53935]"
-            }`}
-            onPress={handleStopAttendance}
-            disabled={!isAttendanceActive}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="stop-circle-outline"
-                size={18}
-                color={!isAttendanceActive ? "#9ca3af" : "white"}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                className={`font-semibold ${
-                  !isAttendanceActive ? "text-gray-500" : "text-white"
-                }`}
-              >
-                Stop Attendance
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Second row of buttons */}
-        <View className="flex-row justify-between">
-          <TouchableOpacity
-            className="flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 bg-gray-100 border border-primary shadow-sm"
-            onPress={() => setShowSettingsModal(true)}
-          >
-            <View className="flex-row justify-between  items-center">
-              <Ionicons
-                name="settings-outline"
-                size={18}
-                color="#5b2333"
-                style={{ marginRight: 6 }}
-              />
-              <Text className="font-semibold text-primary">Settings</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
-              studentsInAttendance.length === 0 ? "bg-gray-200" : "bg-[#43a047]"
-            }`}
-            onPress={handleSaveAttendance}
-            disabled={studentsInAttendance.length === 0}
-          >
-            <View className="flex-row items-center">
-              <Ionicons
-                name="save-outline"
-                size={18}
-                color={studentsInAttendance.length === 0 ? "#9ca3af" : "white"}
-                style={{ marginRight: 6 }}
-              />
-              <Text
-                className={`font-semibold ${
-                  studentsInAttendance.length === 0
-                    ? "text-gray-500"
-                    : "text-white"
-                }`}
-              >
-                Save Attendance
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {isAttendanceActive && (
-        <FlatList
-          data={studentsInAttendance}
-          keyExtractor={(item) => item.id || Math.random().toString()}
-          renderItem={renderStudentItem}
-          contentContainerStyle={{
-            paddingVertical: 12,
-            paddingHorizontal: 4,
-            flexGrow: 1,
-          }}
-          className="flex-1 bg-gray-50"
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#5b2333"]}
-              tintColor="#5b2333"
-              progressBackgroundColor="#ffffff"
-            />
-          }
-          ItemSeparatorComponent={() => <View className="h-2" />}
-          ListHeaderComponent={
-            studentsInAttendance.length > 0 ? (
-              <View className="px-4 pb-2 pt-1">
-                <Text className="text-sm font-medium text-gray-500">
-                  {studentsInAttendance.length}{" "}
-                  {studentsInAttendance.length === 1 ? "student" : "students"}{" "}
-                  in attendance
-                </Text>
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View className="items-center justify-center p-8 h-60 my-auto">
-              <View className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 w-11/12 max-w-[350px] items-center">
-                <Ionicons
-                  name={isAttendanceActive && "people-outline"}
-                  size={48}
-                  color="#5b2333"
-                  style={{ opacity: 0.6, marginBottom: 16 }}
-                />
-                <Text className="text-lg font-bold text-gray-700 text-center mb-2">
-                  {isAttendanceActive && "Waiting for Students"}
-                </Text>
-                <Text className="text-sm text-gray-500 text-center">
-                  {isAttendanceActive &&
-                    "Students will appear here as they are detected or complete quizzes."}
-                </Text>
-
-                {isAttendanceActive && (
-                  <View className="mt-4 w-full">
-                    <View className="bg-gray-100 rounded-full h-1.5 w-full overflow-hidden">
-                      <View className="bg-primary h-full w-1/3 animate-pulse" />
-                    </View>
-                    <Text className="text-xs text-gray-500 text-center mt-2">
-                      Scanning for nearby students...
-                    </Text>
+      <LinearGradient
+        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+        style={{
+          flex: 1,
+          minHeight: "100%",
+          borderTopRightRadius: 20,
+          borderTopLeftRadius: 20,
+          marginBottom: 200,
+        }}
+      >
+        <View className="mx-4 my-2 py-3">
+          {isAttendanceActive ? (
+            <View className="bg-[#111827] rounded-xl shadow-sm overflow-hidden border border-gray-50/50">
+              <View className="bg-[#111827] px-4 py-3">
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={20} color="white" />
+                    <Caption color="white" className=" ml-2 capitalize">
+                      Attendance Active
+                    </Caption>
                   </View>
-                )}
+                  <View className="bg-white/20 px-3 py-1 rounded-full">
+                    <Typography
+                      color="white"
+                      variant="small"
+                      className="text-white text-xs font-medium capitalize"
+                    >
+                      {attendanceMode} Mode
+                    </Typography>
+                  </View>
+                </View>
+              </View>
+
+              <View className="p-4">
+                <View className="flex-row items-center mb-3">
+                  <Ionicons name="book-outline" size={16} color="#fff" />
+                  <Caption
+                    color="white"
+                    className="text-gray-800 ml-2 font-medium"
+                  >
+                    {selectedCourse?.code}: {selectedCourse?.title}
+                  </Caption>
+                </View>
+
+                <View className="flex-row justify-between mb-4">
+                  <View className="flex-row items-center">
+                    <Ionicons name="time-outline" size={16} color="#fff" />
+                    <Typography variant="small" color="white" className=" ml-2">
+                      Started:{" "}
+                      {attendanceStartTime?.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Typography>
+                  </View>
+
+                  <View className="flex-row items-center">
+                    <Ionicons name="people-outline" size={16} color="#fff" />
+                    <Typography
+                      variant="small"
+                      color="white"
+                      className=" text-sm ml-2"
+                    >
+                      {studentsInAttendance.length} students
+                    </Typography>
+                  </View>
+                </View>
+
+                <View className="bg-gray-50 p-3 rounded-lg">
+                  <Caption className="text-gray-500 text-xs mb-1">
+                    TIME REMAINING
+                  </Caption>
+                  <View className="flex-row items-center">
+                    <Ionicons name="alarm-outline" size={20} color="#5b2333" />
+                    <Heading4 className="text-xl font-bold text-primary ml-2">
+                      {formatTimeRemaining()}
+                    </Heading4>
+                  </View>
+                  <View className="mt-2 w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                    <View
+                      className="bg-primary h-full"
+                      style={{
+                        width: `${
+                          timeRemaining
+                            ? (timeRemaining / (attendanceDuration * 60)) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
-          }
-        />
-      )}
+          ) : (
+            <View className="bg-[#111827] rounded-xl p-5 shadow-sm border border-gray-50/50 items-center">
+              <Ionicons name="time-outline" size={28} color="#9ca3af" />
+              <Heading4
+                color="gray"
+                className="font-semibold text-gray-700 text-lg text-center mt-2"
+              >
+                No Active Attendance Session
+              </Heading4>
+              <Typography
+                variant="small"
+                color="gray"
+                className="text-gray-500 text-sm text-center mt-1"
+              >
+                Start an attendance session to track student presence
+              </Typography>
+            </View>
+          )}
+        </View>
 
-      {/* <View style={styles.buttonContainer}>
+        {!isAttendanceActive && renderCourseSelection()}
+
+        <View className="m-4">
+          {/* First row of buttons */}
+          <View className="flex-row justify-between mb-3">
+            <TouchableOpacity
+              className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+                isAttendanceActive ? "bg-gray-200" : "bg-[#1f336c]"
+              }`}
+              onPress={handleStartAttendance}
+              disabled={isAttendanceActive}
+            >
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="play-circle-outline"
+                  size={18}
+                  color={isAttendanceActive ? "#9ca3af" : "white"}
+                  style={{ marginRight: 6 }}
+                />
+                <ButtonText color={isAttendanceActive ? "gray" : "white"}>
+                  Start Attendance
+                </ButtonText>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+                !isAttendanceActive ? "bg-gray-200" : "bg-[#6c1f1fbf]"
+              }`}
+              onPress={handleStopAttendance}
+              disabled={!isAttendanceActive}
+            >
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="stop-circle-outline"
+                  size={18}
+                  color={!isAttendanceActive ? "#1f336c" : "white"}
+                  style={{ marginRight: 6 }}
+                />
+                <ButtonText color={!isAttendanceActive ? "grey" : "white"}>
+                  Stop Attendance
+                </ButtonText>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Second row of buttons */}
+          <View className="flex-row justify-between">
+            <TouchableOpacity
+              className="flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 bg-[#111827]/50 border border-gray-50/50 shadow-sm"
+              onPress={() => setShowSettingsModal(true)}
+            >
+              <View className="flex-row justify-between  items-center">
+                <Ionicons
+                  name="settings-outline"
+                  size={18}
+                  color="#fff"
+                  style={{ marginRight: 6 }}
+                />
+                <ButtonText color="white">Settings</ButtonText>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className={`flex-1 py-3.5 rounded-lg items-center justify-center mx-1.5 shadow-sm ${
+                studentsInAttendance.length === 0
+                  ? "bg-gray-200"
+                  : "bg-[#206824b5]"
+              }`}
+              onPress={handleSaveAttendance}
+              disabled={studentsInAttendance.length === 0}
+            >
+              <View className="flex-row items-center">
+                <Ionicons
+                  name="save-outline"
+                  size={18}
+                  color={
+                    studentsInAttendance.length === 0 ? "#9ca3af" : "white"
+                  }
+                  style={{ marginRight: 6 }}
+                />
+                <ButtonText
+                  color={studentsInAttendance.length === 0 ? "gray" : "white"}
+                >
+                  Save Attendance
+                </ButtonText>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {isAttendanceActive && (
+          <FlatList
+            data={studentsInAttendance}
+            keyExtractor={(item) => item.id || Math.random().toString()}
+            renderItem={renderStudentItem}
+            contentContainerStyle={{
+              paddingVertical: 12,
+              paddingHorizontal: 4,
+              flexGrow: 1,
+            }}
+            className="flex-1 bg-none"
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#5b2333"]}
+                tintColor="#5b2333"
+                progressBackgroundColor="#ffffff"
+              />
+            }
+            ItemSeparatorComponent={() => <View className="h-2" />}
+            ListHeaderComponent={
+              studentsInAttendance.length > 0 ? (
+                <View className="px-4 pb-2 pt-1">
+                  <Typography
+                    variant="small"
+                    color="white"
+                    className="text-sm font-medium text-gray-500"
+                  >
+                    {studentsInAttendance.length}{" "}
+                    {studentsInAttendance.length === 1 ? "student" : "students"}{" "}
+                    in attendance
+                  </Typography>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View className="items-center justify-center p-8 h-60 my-auto">
+                <View className="bg-[#111827] p-6 rounded-xl shadow-sm border border-gray-50/50 w-11/12 max-w-[350px] items-center">
+                  <Ionicons
+                    name={isAttendanceActive && "people-outline"}
+                    size={48}
+                    color="#fff"
+                    style={{ opacity: 0.6, marginBottom: 16 }}
+                  />
+                  <Heading4
+                    color="white"
+                    className="text-lg font-bold text-gray-700 text-center mb-2"
+                  >
+                    {isAttendanceActive && "Waiting for Students"}
+                  </Heading4>
+                  <Typography
+                    variant="small"
+                    color="white"
+                    className="!text-center"
+                  >
+                    {isAttendanceActive &&
+                      "Students will appear here as they are detected or complete quizzes."}
+                  </Typography>
+
+                  {isAttendanceActive && (
+                    <View className="mt-4 w-full">
+                      <View className="bg-gray-100 rounded-full h-1.5 w-full overflow-hidden">
+                        <View className="bg-primary h-full w-1/3 animate-pulse" />
+                      </View>
+                      <Typography
+                        variant="small"
+                        color="white"
+                        className="!text-center mt-2"
+                      >
+                        Scanning for nearby students...
+                      </Typography>
+                    </View>
+                  )}
+                </View>
+              </View>
+            }
+          />
+        )}
+
+        {/* <View style={styles.buttonContainer}>
         <Button
           title="View Attendance Map"
           onPress={() => navigation.navigate("Map" as never)}
@@ -1002,150 +1057,183 @@ export default function Attendance() {
         />
       </View> */}
 
-      <CreateQuizModal
-        visible={showQuizModal}
-        courseInfo={
-          selectedCourse
-            ? {
-                code: selectedCourse.code,
-                title: selectedCourse.title,
-              }
-            : null
-        }
-        onClose={() => {
-          setShowQuizModal(false);
-          Alert.alert(
-            "Attendance Active",
-            "Attendance session is active, but no quiz has been created. You can create a quiz later."
-          );
-        }}
-        onSubmit={handleCreateQuiz}
-      />
-      {/* attendance settings modal */}
-      <Modal
-        visible={showSettingsModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSettingsModal(false)}
-      >
-        <View className="flex-1 justify-center items-center bg-black/60 px-5">
-          <View className="bg-white rounded-xl p-6 w-full max-w-[500px] shadow-lg">
-            {/* Header */}
-            <View className="border-b border-gray-200 pb-4 mb-5">
-              <Text className="text-2xl font-bold text-primary">
-                Attendance Settings
-              </Text>
-              <Text className="text-gray-500 text-sm mt-1">
-                Configure how attendance is tracked and recorded
-              </Text>
-            </View>
+        <CreateQuizModal
+          visible={showQuizModal}
+          courseInfo={
+            selectedCourse
+              ? {
+                  code: selectedCourse.code,
+                  title: selectedCourse.title,
+                }
+              : null
+          }
+          onClose={() => {
+            setShowQuizModal(false);
+            Alert.alert(
+              "Attendance Active",
+              "Attendance session is active, but no quiz has been created. You can create a quiz later."
+            );
+          }}
+          onSubmit={handleCreateQuiz}
+        />
+        {/* attendance settings modal */}
+        <Modal
+          visible={showSettingsModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSettingsModal(false)}
+        >
+          <View className="flex-1 justify-center items-center bg-black/60 px-5">
+            <View className="bg-[#111827]/80 rounded-xl p-6 w-full max-w-[500px] shadow-lg">
+              {/* Header */}
+              <View className="border-b border-gray-200 pb-4 mb-5">
+                <Heading4
+                  color="white"
+                  className="text-2xl font-bold text-primary"
+                >
+                  Attendance Settings
+                </Heading4>
+                <Typography
+                  variant="small"
+                  color="gray"
+                  className="text-gray-500 text-sm mt-1"
+                >
+                  Configure how attendance is tracked and recorded
+                </Typography>
+              </View>
 
-            {/* Attendance Mode Section */}
-            <View className="mb-6">
-              <Text className="text-base font-bold text-gray-800 mb-3">
-                Attendance Mode
-              </Text>
-              <View className="bg-gray-50 p-4 rounded-lg">
-                <View className="flex-row justify-between items-center">
-                  <View>
-                    <Text className="text-base font-medium">
-                      {tempMode === AttendanceMode.AUTOMATIC
-                        ? "Automatic"
-                        : "Quiz-Based"}
-                    </Text>
-                    <Text className="text-sm text-gray-600 mt-1 max-w-[220px]">
-                      {tempMode === AttendanceMode.AUTOMATIC
-                        ? "Students in range will be automatically marked present"
-                        : "Students must complete a quiz to be marked present"}
-                    </Text>
+              {/* Attendance Mode Section */}
+              <View className="mb-6">
+                <Subtitle
+                  color="white"
+                  className="text-base font-bold text-gray-800 mb-3"
+                >
+                  Attendance Mode
+                </Subtitle>
+                <View className="bg-gray-50 p-4 rounded-lg">
+                  <View className="flex-row justify-between items-center">
+                    <View>
+                      <Caption className="text-base font-medium">
+                        {tempMode === AttendanceMode.AUTOMATIC
+                          ? "Automatic"
+                          : "Quiz-Based"}
+                      </Caption>
+                      <Typography
+                        variant="small"
+                        className="text-sm text-gray-600 mt-1 max-w-[220px]"
+                      >
+                        {tempMode === AttendanceMode.AUTOMATIC
+                          ? "Students in range will be automatically marked present"
+                          : "Students must complete a quiz to be marked present"}
+                      </Typography>
+                    </View>
+                    <Switch
+                      value={tempMode === AttendanceMode.AUTOMATIC}
+                      onValueChange={(value) =>
+                        setTempMode(
+                          value
+                            ? AttendanceMode.AUTOMATIC
+                            : AttendanceMode.QUIZ_BASED
+                        )
+                      }
+                      trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
+                      thumbColor={
+                        tempMode === AttendanceMode.AUTOMATIC
+                          ? "primary"
+                          : "#f3f4f6"
+                      }
+                      ios_backgroundColor="#d1d5db"
+                      className="ml-2"
+                    />
                   </View>
-                  <Switch
-                    value={tempMode === AttendanceMode.AUTOMATIC}
-                    onValueChange={(value) =>
-                      setTempMode(
-                        value
-                          ? AttendanceMode.AUTOMATIC
-                          : AttendanceMode.QUIZ_BASED
-                      )
-                    }
-                    trackColor={{ false: "#d1d5db", true: "#c4b5fd" }}
-                    thumbColor={
-                      tempMode === AttendanceMode.AUTOMATIC
-                        ? "primary"
-                        : "#f3f4f6"
-                    }
-                    ios_backgroundColor="#d1d5db"
-                    className="ml-2"
-                  />
                 </View>
               </View>
-            </View>
 
-            {/* Session Duration Section */}
-            <View className="mb-6">
-              <Text className="text-base font-bold text-gray-800 mb-2">
-                Session Duration
-              </Text>
-              <View className="relative">
-                <TextInput
-                  className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
-                  placeholder="Duration"
-                  value={tempDuration}
-                  onChangeText={setTempDuration}
-                  keyboardType="numeric"
-                />
-                <Text className="absolute right-4 top-4 text-gray-500">
-                  minutes
-                </Text>
+              {/* Session Duration Section */}
+              <View className="mb-6">
+                <Subtitle color="white" className=" mb-2">
+                  Session Duration
+                </Subtitle>
+                <View className="relative">
+                  <TextInput
+                    className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
+                    placeholder="Duration"
+                    value={tempDuration}
+                    onChangeText={setTempDuration}
+                    keyboardType="numeric"
+                  />
+                  <Typography
+                    variant="small"
+                    className="absolute right-4 top-4 text-gray-500"
+                  >
+                    minutes
+                  </Typography>
+                </View>
+                <Typography
+                  variant="small"
+                  color="gray"
+                  className="text-xs text-gray-500 mt-2"
+                >
+                  The attendance session will automatically end after this
+                  duration
+                </Typography>
               </View>
-              <Text className="text-xs text-gray-500 mt-2">
-                The attendance session will automatically end after this
-                duration
-              </Text>
-            </View>
 
-            {/* Detection Radius Section */}
-            <View className="mb-6">
-              <Text className="text-base font-bold text-gray-800 mb-2">
-                Detection Radius
-              </Text>
-              <View className="relative">
-                <TextInput
-                  className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
-                  placeholder="Radius"
-                  value={tempRadius}
-                  onChangeText={setTempRadius}
-                  keyboardType="numeric"
-                />
-                <Text className="absolute right-4 top-4 text-gray-500">
-                  meters
-                </Text>
+              {/* Detection Radius Section */}
+              <View className="mb-6">
+                <Subtitle
+                  color="white"
+                  className="text-base font-bold text-gray-800 mb-2"
+                >
+                  Detection Radius
+                </Subtitle>
+                <View className="relative">
+                  <TextInput
+                    className="border border-gray-300 rounded-lg p-4 bg-gray-50 pr-12 text-base"
+                    placeholder="Radius"
+                    value={tempRadius}
+                    onChangeText={setTempRadius}
+                    keyboardType="numeric"
+                  />
+                  <Typography
+                    variant="small"
+                    className="absolute right-4 top-4 text-gray-500"
+                  >
+                    meters
+                  </Typography>
+                </View>
+                <Typography
+                  variant="small"
+                  color="gray"
+                  className="text-xs text-gray-500 mt-2"
+                >
+                  Students within this distance from you will be detected for
+                  automatic attendance
+                </Typography>
               </View>
-              <Text className="text-xs text-gray-500 mt-2">
-                Students within this distance from you will be detected for
-                automatic attendance
-              </Text>
-            </View>
 
-            {/* Action Buttons */}
-            <View className="flex-row justify-between mt-2">
-              <TouchableOpacity
-                className="bg-gray-200 py-4 px-6 rounded-lg items-center flex-1 mr-3"
-                onPress={() => setShowSettingsModal(false)}
-              >
-                <Text className="text-gray-700 font-semibold">Cancel</Text>
-              </TouchableOpacity>
+              {/* Action Buttons */}
+              <View className="flex-row justify-between mt-2">
+                <TouchableOpacity
+                  className="bg-gray-200 py-4 px-6 rounded-lg items-center flex-1 mr-3"
+                  onPress={() => setShowSettingsModal(false)}
+                >
+                  <ButtonText className="text-gray-700 font-semibold">
+                    Cancel
+                  </ButtonText>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                className="bg-primary py-4 px-6 rounded-lg items-center flex-1"
-                onPress={saveAttendanceSettings}
-              >
-                <Text className="text-white font-semibold">Save Settings</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  className="bg-primary py-4 px-6 rounded-lg items-center flex-1"
+                  onPress={saveAttendanceSettings}
+                >
+                  <ButtonText color="white">Save Settings</ButtonText>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </LinearGradient>
     </View>
   );
 }

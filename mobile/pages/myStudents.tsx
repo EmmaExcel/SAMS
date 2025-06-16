@@ -24,10 +24,23 @@ import {
 } from "firebase/firestore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import {
+  Body,
+  ButtonText,
+  Caption,
+  Heading3,
+  Heading4,
+  Subtitle,
+} from "../component/ui/Typography";
+
+interface NavigationProps {
+  navigate: (screen: string, params?: any) => void;
+  goBack: () => void;
+}
 
 export default function MyStudents() {
   const { userProfile } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProps>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
@@ -299,7 +312,10 @@ export default function MyStudents() {
   };
 
   const handleStudentPress = (student: any) => {
-    navigation.navigate("StudentDetails", { student, totalClassesHeld });
+    navigation.navigate("StudentDetails", {
+      student,
+      totalClassesHeld,
+    });
   };
 
   const onRefresh = () => {
@@ -328,7 +344,7 @@ export default function MyStudents() {
       <TouchableOpacity
         key={index}
         className={`px-3 py-3 mx-1.5 rounded-xl ${
-          isSelected ? "bg-[#5b2333]/80" : "bg-white border border-gray-200"
+          isSelected ? "bg-[#081427]" : "bg-[#1e293b]"
         }`}
         style={{
           shadowColor: isSelected ? "#5b2333" : "#000",
@@ -339,11 +355,9 @@ export default function MyStudents() {
         }}
         onPress={() => setSelectedCourse(course)}
       >
-        <Text
-          className={`font-bold ${isSelected ? "text-white" : "text-gray-700"}`}
-        >
+        <ButtonText color={isSelected ? "white" : "black"}>
           {course.code}
-        </Text>
+        </ButtonText>
         {isSelected && (
           <View className="absolute -bottom-1.5 left-0 right-0 flex items-center">
             <View className="h-1 w-10 bg-white rounded-full"></View>
@@ -354,7 +368,7 @@ export default function MyStudents() {
   };
 
   const renderStudentItem = ({ item, index }: { item: any; index: number }) => {
-    const colors = ["#5b2333", "#6b3a4c", "#7d4e65", "#8f637e", "#a17897"];
+    const colors = ["#3f3d56", "#5b2333"];
     const colorIndex = item.name.charCodeAt(0) % colors.length;
     const avatarColor = colors[colorIndex];
 
@@ -373,11 +387,11 @@ export default function MyStudents() {
 
     return (
       <TouchableOpacity
-        className={`mb-3 mx-4 rounded-xl bg-white overflow-hidden ${
+        className={`mb-3 mx-4 rounded-2xl bg-[#111827] overflow-hidden ${
           index === 0 ? "mt-2" : ""
         }`}
         style={{
-          shadowColor: "#000",
+          shadowColor: "#fff",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.1,
           shadowRadius: 3,
@@ -391,19 +405,15 @@ export default function MyStudents() {
             className="h-12 w-12 rounded-full items-center justify-center mr-4"
             style={{ backgroundColor: avatarColor }}
           >
-            <Text className="text-white font-bold text-lg">{initials}</Text>
+            <Heading4 color="white">{initials}</Heading4>
           </View>
 
           {/* Student Info */}
           <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
-            <View className="flex-row items-center mt-1">
-              <Text className="text-sm text-gray-500 mr-4">
-                {item.studentId}
-              </Text>
-              <Text className="text-sm text-gray-500">
-                Level: {item.level || "N/A"}
-              </Text>
+            <Heading4 color="white">{item.name}</Heading4>
+            <View className="flex-row items-center gap-x-2 mt-1">
+              <Caption color="white">{item.studentId}</Caption>
+              <Caption color="white">Level: {item.level || "N/A"}</Caption>
             </View>
           </View>
 
@@ -420,26 +430,31 @@ export default function MyStudents() {
                     : "#F44336",
               }}
             >
-              <Text className="text-xl font-bold">{item.attendanceCount}</Text>
-              <Text className="text-xs text-gray-500">
+              <Subtitle color="white" className="text-xl font-bold">
+                {item.attendanceCount}
+              </Subtitle>
+              <Caption color="white" className="text-xs text-gray-500">
                 {totalClassesHeld > 0 ? `${attendancePercentage}%` : "N/A"}
-              </Text>
+              </Caption>
             </View>
           </View>
         </View>
 
-        <View className="flex-row justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-100">
-          <Text className="text-xs text-gray-500">
+        <View className="flex-row justify-between items-center px-4 py-2 bg-[#111827] border-t-[0.5px] border-gray-600">
+          <Caption color="white" className="text-xs text-gray-500">
             {item.department || "Department: N/A"}
-          </Text>
+          </Caption>
           <TouchableOpacity
             className="flex-row items-center"
             onPress={() => handleStudentPress(item)}
           >
-            <Text className="text-xs font-medium text-[#5b2333] mr-1">
+            <Caption
+              color="white"
+              className="text-xs font-medium text-[#5b2333] mr-1"
+            >
               View Details
-            </Text>
-            <Ionicons name="chevron-forward" size={12} color="#5b2333" />
+            </Caption>
+            <Ionicons name="chevron-forward" size={12} color="#fff" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -447,18 +462,19 @@ export default function MyStudents() {
   };
 
   const renderHeader = () => (
-    <View>
+    <View className="w-full bg-black  ">
       <LinearGradient
-        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+        colors={["black", "black"]}
         style={{
           paddingTop: 50,
           paddingBottom: 8,
+          width: "100%",
           paddingHorizontal: 16,
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20,
+          // borderBottomLeftRadius: 20,
+          // borderBottomRightRadius: 20,
         }}
       >
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center justify-between mb-4 ">
           <TouchableOpacity
             className="w-8 h-8 items-center justify-center rounded-full bg-white/20"
             onPress={() => navigation.goBack()}
@@ -466,7 +482,9 @@ export default function MyStudents() {
             <Ionicons name="chevron-back" size={20} color="white" />
           </TouchableOpacity>
 
-          <Text className="text-white text-xl font-bold">My Students</Text>
+          <Heading4 color="white" className="text-white text-xl font-bold">
+            My Students
+          </Heading4>
 
           <TouchableOpacity
             className="w-10 h-10 items-center justify-center rounded-full bg-white/20"
@@ -476,7 +494,7 @@ export default function MyStudents() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2 mb-4">
+        <View className="flex-row items-center bg-white/10 rounded-xl px-4 py-2 mb-4 ">
           <Ionicons name="search-outline" size={20} color="white" />
           <TextInput
             className="flex-1 ml-2 text-white"
@@ -494,111 +512,125 @@ export default function MyStudents() {
 
         {/* Course Tabs */}
       </LinearGradient>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="my-2 bg-white"
+        className="py-1 bg-[#057BFF] rounded-t-3xl px-2 "
       >
         {courses.map((course, index) => renderCourseTab(course, index))}
       </ScrollView>
       {/* Filter Options */}
-      {filterVisible && (
-        <View className="bg-white mx-4 my-2 p-4 rounded-xl shadow-sm ">
-          <Text className="text-gray-800 font-bold mb-2">Sort By:</Text>
-          <View className="flex-row flex-wrap">
-            <TouchableOpacity
-              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
-                sortOption === "name"
-                  ? "bg-[#5b2333] text-white"
-                  : "bg-gray-100"
-              }`}
-              onPress={() => {
-                setSortOption("name");
-                sortStudents(students, "name");
-              }}
-            >
-              <Text
-                className={
-                  sortOption === "name" ? "text-white" : "text-gray-800"
-                }
+      <View className="bg-[#057BFF] py-3">
+        {filterVisible && (
+          <View className="bg-[#091220] mx-4 my-2 p-4 rounded-xl shadow-sm  ">
+            <Subtitle color="white" className=" !font-bold mb-2">
+              Sort By:
+            </Subtitle>
+            <View className="flex-row flex-wrap">
+              <TouchableOpacity
+                className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                  sortOption === "name"
+                    ? "bg-[#257bdd] text-white"
+                    : "bg-none border-white border border-dashed"
+                }`}
+                onPress={() => {
+                  setSortOption("name");
+                  sortStudents(students, "name");
+                }}
               >
-                Name
-              </Text>
-            </TouchableOpacity>
+                <Caption
+                  color={`${sortOption === "name" ? "white" : "white"}`}
+                  className={
+                    sortOption === "name" ? "text-white" : "text-gray-800"
+                  }
+                >
+                  Name
+                </Caption>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
-                sortOption === "attendance"
-                  ? "bg-[#5b2333] text-white"
-                  : "bg-gray-100"
-              }`}
-              onPress={() => {
-                setSortOption("attendance");
-                sortStudents(students, "attendance");
-              }}
-            >
-              <Text
-                className={
-                  sortOption === "attendance" ? "text-white" : "text-gray-800"
-                }
+              <TouchableOpacity
+                className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                  sortOption === "attendance"
+                    ? "bg-[#257bdd] text-white"
+                    : "bg-none border-white border border-dashed"
+                }`}
+                onPress={() => {
+                  setSortOption("attendance");
+                  sortStudents(students, "attendance");
+                }}
               >
-                Attendance
-              </Text>
-            </TouchableOpacity>
+                <Caption
+                  color={`${sortOption === "attendance" ? "white" : "white"}`}
+                  className={
+                    sortOption === "attendance" ? "text-white" : "text-gray-800"
+                  }
+                >
+                  Attendance
+                </Caption>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
-                sortOption === "id" ? "bg-[#5b2333] text-white" : "bg-gray-100"
-              }`}
-              onPress={() => {
-                setSortOption("id");
-                sortStudents(students, "id");
-              }}
-            >
-              <Text
-                className={sortOption === "id" ? "text-white" : "text-gray-800"}
+              <TouchableOpacity
+                className={`mr-2 mb-2 px-3 py-1.5 rounded-full ${
+                  sortOption === "id"
+                    ? "bg-[#257bdd] text-white"
+                    : "bg-none border-white border border-dashed"
+                }`}
+                onPress={() => {
+                  setSortOption("id");
+                  sortStudents(students, "id");
+                }}
               >
-                Student ID
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Course Info */}
-      {selectedCourse && (
-        <View className="bg-white mx-4 mt-2 p-4 rounded-xl shadow-sm mb-2">
-          <Text className="text-lg font-bold text-gray-800 mb-1">
-            {selectedCourse.title || "Course Title"}
-          </Text>
-          <Text className="text-sm text-gray-600 mb-3">
-            {selectedCourse.code} • Level {selectedCourse.level || "N/A"}
-          </Text>
-
-          <View className="flex-row justify-between">
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-[#5b2333]">
-                {students.length}
-              </Text>
-              <Text className="text-xs text-gray-500">Students</Text>
-            </View>
-
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-[#5b2333]">
-                {totalClassesHeld}
-              </Text>
-              <Text className="text-xs text-gray-500">Classes Held</Text>
-            </View>
-
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-[#5b2333]">
-                {students.filter((s) => s.attendanceCount > 0).length}
-              </Text>
-              <Text className="text-xs text-gray-500">Active Students</Text>
+                <Caption
+                  color={`${sortOption === "id" ? "white" : "white"}`}
+                  className={
+                    sortOption === "id" ? "text-white" : "text-gray-800"
+                  }
+                >
+                  Student ID
+                </Caption>
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
-      )}
+        )}
+
+        {/* Course Info */}
+        {selectedCourse && (
+          <View className="bg-[#091220] mx-4 mt-2 p-4 rounded-xl shadow-sm mb-2">
+            <Heading4
+              color="white"
+              className="text-lg font-bold text-gray-800 mb-1"
+            >
+              {selectedCourse.title || "Course Title"}
+            </Heading4>
+            <Caption color="white" className="text-sm text-gray-600 mb-3">
+              {selectedCourse.code} • Level {selectedCourse.level || "N/A"}
+            </Caption>
+
+            <View className="flex-row justify-between">
+              <View className="items-center">
+                <Heading3 color="white">{students.length}</Heading3>
+                <Caption color="gray">Students</Caption>
+              </View>
+
+              <View className="items-center">
+                <Heading3 color="white">{totalClassesHeld}</Heading3>
+                <Caption color="gray">Classes Held</Caption>
+              </View>
+
+              <View className="items-center">
+                <Heading3
+                  color="white"
+                  className="text-2xl font-bold text-[#5b2333]"
+                >
+                  {students.filter((s) => s.attendanceCount > 0).length}
+                </Heading3>
+                <Caption color="gray">Active Students</Caption>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 
@@ -633,41 +665,52 @@ export default function MyStudents() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <StatusBar barStyle="light-content" backgroundColor="#5b2333" />
-      {renderHeader()}
-      <FlatList
-        data={filteredStudents}
-        keyExtractor={(item) => item.id}
-        renderItem={renderStudentItem}
-        ListEmptyComponent={!loading ? renderEmptyState : null}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: 20,
+    <View className="flex-1 bg-black ">
+      <LinearGradient
+        colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+        style={{
+          flex: 1,
+          minHeight: "100%",
+          borderTopRightRadius: 20,
+          borderTopLeftRadius: 20,
+          marginBottom: 10,
         }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={["#5b2333"]}
-            tintColor="#5b2333"
-          />
-        }
-        ListFooterComponent={
-          loading ? (
-            <View className="py-8 items-center">
-              <ActivityIndicator size="large" color="#5b2333" />
-              <Text className="mt-4 text-gray-500">Loading students...</Text>
-            </View>
-          ) : filteredStudents.length > 0 ? (
-            <View className="py-4 items-center">
-              <Text className="text-gray-400 text-xs">
-                {filteredStudents.length} students enrolled
-              </Text>
-            </View>
-          ) : null
-        }
-      />
+      >
+        <StatusBar barStyle="light-content" />
+        {renderHeader()}
+        <FlatList
+          data={filteredStudents}
+          keyExtractor={(item) => item.id}
+          renderItem={renderStudentItem}
+          ListEmptyComponent={!loading ? renderEmptyState : null}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 20,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#5b2333"]}
+              tintColor="#5b2333"
+            />
+          }
+          ListFooterComponent={
+            loading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#fff" />
+                <Caption color="white">Loading students...</Caption>
+              </View>
+            ) : filteredStudents.length > 0 ? (
+              <View className="py-4 items-center">
+                <Caption color="white" className="text-gray-400 text-xs">
+                  {filteredStudents.length} students enrolled
+                </Caption>
+              </View>
+            ) : null
+          }
+        />
+      </LinearGradient>
     </View>
   );
 }

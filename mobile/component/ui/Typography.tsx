@@ -11,6 +11,7 @@ interface TypographyProps extends TextProps {
     | "subtitle"
     | "body"
     | "caption"
+    | "small"
     | "button";
   weight?: "regular" | "medium" | "semiBold" | "bold";
   color?: string;
@@ -68,6 +69,11 @@ export const Typography: React.FC<TypographyProps> = ({
         return {
           fontSize: typography.fontSize.sm,
           lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
+        };
+      case "small":
+        return {
+          fontSize: typography.fontSize.xs,
+          lineHeight: typography.fontSize.xs * typography.lineHeight.normal,
         };
       case "button":
         return {

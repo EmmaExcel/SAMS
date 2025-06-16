@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Text, View, TouchableOpacity, ScrollView } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import {
+  NavigationContainerProps,
+  NavigationProp,
+  useNavigation,
+} from "@react-navigation/native";
 import { useAuth } from "../context/authContext";
 import { useAttendance } from "../context/attendanceContext";
 import { onValue, ref, get } from "firebase/database";
@@ -30,12 +34,14 @@ import {
 } from "../component/ui/Typography";
 import { useTheme } from "../context/themeContext";
 import DarkButton from "../component/ui/DarkButton";
+import { useNetwork } from "../context/NetworkProvider";
 
 export default function StudentHomeScreen() {
   const { theme } = useTheme();
+  const { isConnected } = useNetwork();
   const { user, userProfile, logout } = useAuth();
   const { isAttendanceActive } = useAttendance();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationContainerProps>();
   const [activeAttendanceSessions, setActiveAttendanceSessions] = useState<
     any[]
   >([]);
@@ -266,7 +272,7 @@ export default function StudentHomeScreen() {
     {
       icon: <Ionicons name="book" size={30} color={PRIMARY_COLOR} />,
       title: ["My", "Courses"],
-      onPress: () => navigation.navigate("Courses"),
+      onPress: () => navigation.navigate("My Courses"),
       userType: "student",
     },
     {
@@ -317,6 +323,20 @@ export default function StudentHomeScreen() {
       userType: "lecturer",
     },
   ];
+
+  // if (!isConnected) {
+  //   return (
+  //     <View className="flex-1 items-center justify-center bg-white">
+  //       <Text className="text-red-600 text-lg font-bold">You're Offline</Text>
+  //     </View>
+  //   );
+  // }
+
+  // return (
+  //   <View className="flex-1 items-center justify-center bg-green-100">
+  //     <Text className="text-green-700">You're Online ✅</Text>
+  //   </View>
+  // );
 
   return (
     <View className="flex-1 relative bg-black">
@@ -478,13 +498,13 @@ export default function StudentHomeScreen() {
           >
             Academic Essentials
           </Heading3>
-          <View className="flex-row flex-wrap justify-between gap-3 ">
+          <View className="flex-row flex-wrap justify-between mt-4">
             {QuickActions.map((action, index) => (
               <React.Fragment key={index}>
                 {action.userType === userProfile?.userType && (
                   <DarkButton
                     key={index}
-                    className="bg-white shadow-sm rounded-lg py-6 gap-y-3 m-2 w-[45%] items-center"
+                    className="mb-4"
                     onPress={action.onPress}
                     icon={action.icon}
                     title={action.title}
@@ -494,20 +514,22 @@ export default function StudentHomeScreen() {
             ))}
           </View>
 
-          <Heading3
-            color={theme.colors.white}
-            className="font-semibold text-lg my-5"
-          >
-            Attendance Actions
-          </Heading3>
+          {
+            <Heading3
+              color={theme.colors.white}
+              className="font-semibold text-lg my-5"
+            >
+              Attendance Actions
+            </Heading3>
+          }
           <View className="flex-row flex-wrap justify-between gap-3 ">
             {AttendanceActions.map((action, index) => (
               <React.Fragment key={index}>
                 {action.userType === userProfile?.userType && (
                   <DarkButton
                     key={index}
-                    className="bg-white shadow-sm rounded-lg py-6 gap-y-3 m-2 w-[45%] items-center"
                     onPress={action.onPress}
+                    className="mb-1"
                     icon={action.icon}
                     title={action.title}
                   />
@@ -520,7 +542,7 @@ export default function StudentHomeScreen() {
             <View className="py-4 flex flex-row justify-center items-center mt-8 ">
               <TouchableOpacity
                 onPress={() => navigation.push("Attendance")}
-                className="shadow-sm bg-none  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]   rounded-3xl"
+                className=" bg-none  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]   rounded-3xl"
               >
                 {activeAttendanceSessions.length > 0 ? (
                   <Heading4 color={theme.colors.white} className="">
@@ -545,7 +567,7 @@ export default function StudentHomeScreen() {
             <View className="py-4 flex flex-row justify-center items-center ">
               <TouchableOpacity
                 onPress={() => alert("Coming Soon")}
-                className="shadow-sm bg-none  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]   rounded-3xl"
+                className=" py-6 px-8  w-full flex-row justify-between items-center gap-x-2 border-[0.5px]  rounded-3xl"
               >
                 <Subtitle className="!text-2xl" color={theme.colors.white}>
                   Register A New Course
@@ -563,7 +585,7 @@ export default function StudentHomeScreen() {
           <View className="py-4 flex flex-row justify-center items-center ">
             <TouchableOpacity
               onPress={logout}
-              className="shadow-sm bg-primary  py-6 px-8  w-full flex-row justify-between items-center gap-x-2    rounded-3xl"
+              className="  py-6 px-8  w-full flex-row justify-between items-center gap-x-2 rounded-3xl"
             >
               <Subtitle className="!text-2xl" color={theme.colors.white}>
                 Logout
