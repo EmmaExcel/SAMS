@@ -18,12 +18,13 @@ import { useNavigation } from "@react-navigation/native";
 import TabNavigator from "../../component/TabNavigation";
 import StudentAttendanceHistory from "../studentAttendanceHistory";
 import StudentCourses from "../MyCourses";
+import Profile from "../Profile";
 
 const Stack = createNativeStackNavigator();
 
 const LoadingScreen = () => (
   <View className="flex-1 justify-center items-center">
-    <ActivityIndicator size="large" color="#5b2333" />
+    <ActivityIndicator size="large" color="#fff" />
   </View>
 );
 
@@ -116,6 +117,13 @@ export default function AppNavigator() {
           <Stack.Screen
             name="StudentDetails"
             component={StudentDetails}
+            options={{
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={Profile}
             options={{
               gestureEnabled: false,
             }}

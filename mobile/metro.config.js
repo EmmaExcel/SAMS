@@ -14,6 +14,8 @@ config.resolver = {
   ...resolver,
   assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
   sourceExts: [...resolver.sourceExts, "svg"],
+  // Fix Firebase package.json exports issues
+  unstable_enablePackageExports: false,
 };
 
 // Apply NativeWind configuration and export

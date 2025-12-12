@@ -17,16 +17,19 @@ import { ref, set, serverTimestamp } from "firebase/database";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import {
   Body,
   ButtonText,
   Caption,
   Heading1,
+  Heading2,
+  Heading4,
   Subtitle,
 } from "../component/ui/Typography";
 import { useTheme } from "../context/themeContext";
 import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 
 export default function LoginScreen() {
   const { theme } = useTheme();
@@ -34,7 +37,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   const navigation = useNavigation();
 
   const handleLogin = async () => {
@@ -124,13 +126,20 @@ export default function LoginScreen() {
   };
 
   return (
+
+    <View className="flex-1 relative bg-black">
+    <StatusBar style="light" />
+
+    {/* Header Section */}
     <LinearGradient
-      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
-      style={styles.gradientContainer}
+      colors={["black", "black"]}
+      style={{
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+        paddingTop: 60,
+      }}
     >
-      <SafeAreaView className="flex-1  justify-start items-center">
-        <View className="w-full flex flex-col items-center gap-y-5 flex-1">
-          <View className="w-full px-4">
+       <View className="w-full px-4">
             <Heading1
               color={theme.colors.white}
               className="text-2xl font-bold text-white mb-2"
@@ -144,10 +153,16 @@ export default function LoginScreen() {
               Welcome Back, login to continue
             </Subtitle>
           </View>
-
+    </LinearGradient>
+    <LinearGradient
+      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView className="flex-1  justify-start items-center">
+        <View className="w-full flex flex-col items-center gap-y-5 flex-1">
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
-            className="flex-1 justify-center px-2 w-full"
+            className=" justify-center px-2 w-full"
           >
             <View className="px-3 bg-none gap-y-4 rounded-xl">
               <View className="flex-row items-center bg-black/80 rounded-xl px-4  h-14">
@@ -197,7 +212,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator
                   size="large"
-                  color="#5b2333"
+                  color="white"
                   className="mt-6"
                 />
               ) : (
@@ -230,6 +245,7 @@ export default function LoginScreen() {
         </View>
       </SafeAreaView>
     </LinearGradient>
+    </View>
   );
 }
 
@@ -237,6 +253,8 @@ const styles = StyleSheet.create({
   gradientContainer: {
     flex: 1,
     width: "100%",
+    borderTopEndRadius: 30,
+    borderTopStartRadius: 30,
   },
   container: {
     flex: 1,

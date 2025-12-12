@@ -3,21 +3,36 @@ import {
   Text,
   View,
   TextInput,
-  Button,
-  Alert,
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
-import { db, auth, rtdb } from "../firebase";
+import {
+  doc,
+  updateDoc,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
+import { db, rtdb } from "../firebase";
 import { ref, update } from "firebase/database";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Dropdown } from "react-native-element-dropdown";
 import { useAuth } from "../context/authContext";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  Heading2,
+  Heading3,
+  Heading4,
+  Subtitle,
+  Caption,
+  Body,
+} from "../component/ui/Typography";
+import { CustomAlert } from "../component/ui/CustomAlert";
+import { useTheme } from "../context/themeContext";
 
 const DEPARTMENTS = [
   "Computer Science",
@@ -34,8 +49,38 @@ const DEPARTMENTS = [
 
 const PRIMARY_COLOR = "#5b2333";
 
-export default function LecturerProfileSetup() {
+export default function LecturerProfileSetup({ navigation }: { navigation?: any }) {
+  const { theme } = useTheme();
   const { refreshUserProfile } = useAuth();
+  
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+    buttons?: any[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const showAlert = (
+    title: string, 
+    message: string, 
+    type: "success" | "error" | "info" | "warning" = "info",
+    buttons?: any[]
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, buttons });
+  };
+
+  const closeAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  // State Variables (matching user snippet)
   const [name, setName] = useState("");
   const [lecturerId, setLecturerId] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -45,8 +90,10 @@ export default function LecturerProfileSetup() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  const navigation = useNavigation();
-  const data = DEPARTMENTS.map((dept) => ({ label: dept, value: dept }));
+  // UI State
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 2;
+  const [isDeptModalVisible, setDeptModalVisible] = useState(false);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -71,7 +118,7 @@ export default function LecturerProfileSetup() {
 
   const deleteCourse = (index: number) => {
     if (courses.length <= 1) {
-      Alert.alert("Cannot Delete", "You must have at least one course.");
+      showAlert("Cannot Delete", "You must have at least one course.", "warning");
       return;
     }
 
@@ -79,16 +126,31 @@ export default function LecturerProfileSetup() {
     setCourses(updatedCourses);
   };
 
+  // Logic for step navigation
+  const nextStep = () => {
+    if (currentStep === 1) {
+      if (!name || !phoneNumber) {
+        showAlert("Missing Info", "Name and Phone Number are required.", "warning");
+        return;
+      }
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
   const handleSubmit = async () => {
     if (!name || !phoneNumber || !department) {
-      Alert.alert("Error", "Name, phone number, and department are required");
+      showAlert("Error", "Name, phone number, and department are required", "warning");
       return;
     }
 
     if (
       courses.some((course) => !course.code || !course.title || !course.level)
     ) {
-      Alert.alert("Error", "Please complete all course information");
+      showAlert("Error", "Please complete all course information", "warning");
       return;
     }
 
@@ -150,218 +212,331 @@ export default function LecturerProfileSetup() {
 
       await refreshUserProfile();
 
-      Alert.alert(
+      showAlert(
         "Profile Setup Complete",
         "Your lecturer profile has been set up successfully!",
+        "success",
         [
           {
             text: "OK",
-            onPress: () =>
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Home" }] as never,
-              }),
+            onPress: () => {
+               if (navigation && navigation.reset) {
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: "Home" }],
+                    });
+                }
+            },
           },
         ]
       );
     } catch (error: any) {
       console.error("Profile setup error:", error);
-      Alert.alert("Error", error.message);
+      showAlert("Error", error.message, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1  items-center justify-center px-4 py-1">
-        <View className="mb-8">
-          <Text className="text-3xl font-semibold text-center text-gray-800 mb-3">
-            Lecturer Profile Setup
-          </Text>
-          <Text className="text-gray-600 text-center">
-            Please complete your profile to continue.
-          </Text>
-        </View>
-
-        <ScrollView
-          className="flex-1 w-full"
-          showsVerticalScrollIndicator={false}
-        >
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">Full Name *</Text>
-            <TextInput
-              placeholder="Enter your full name"
-              value={name}
-              onChangeText={setName}
-              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
-            />
-          </View>
-
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">
-              Lecturer ID (Optional)
-            </Text>
-            <TextInput
-              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
-              placeholder="Lecturer ID"
-              value={lecturerId}
-              onChangeText={setLecturerId}
-            />
-          </View>
-
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">
-              Phone Number *
-            </Text>
-            <TextInput
-              placeholder="Enter your phone number"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-              className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700"
-              maxLength={11}
-            />
-          </View>
-
-          <View className="mb-4">
-            <Text className="text-gray-700 font-medium mb-2">
-              Additional Contact Information
-            </Text>
-            <TextInput
-              placeholder="Enter any additional contact information"
-              value={contactInfo}
-              onChangeText={setContactInfo}
-              multiline
-              numberOfLines={7}
-              className="w-full h-16 border border-gray-300 rounded-md px-4 py-3 text-gray-700"
-            />
-          </View>
-
-          <View className="w-full mb-4">
-            <Text className="text-gray-700 font-medium mb-2">Department *</Text>
-            <Dropdown
-              style={{
-                padding: 10,
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 6,
-              }}
-              placeholderStyle={{ color: "#888", fontSize: 14 }}
-              selectedTextStyle={{ fontWeight: "400" }}
-              data={data}
-              maxHeight={300}
-              labelField="label"
-              valueField="value"
-              placeholder="Select Department"
-              value={department}
-              onChange={(item) => setDepartment(item.value)}
-            />
-          </View>
-
-          <Text className="text-gray-700 font-medium mb-2">
-            Courses you teach *
-          </Text>
-
-          {courses.map((course, index) => (
+  const renderStepIndicator = () => (
+    <View className="flex-row justify-center items-center space-x-4 mt-4">
+      {[1, 2].map((step) => (
+        <React.Fragment key={step}>
+          {step > 1 && (
             <View
-              key={index}
-              className="w-full p-3 mb-4 bg-neutral-50/15 border border-primary/50 rounded "
+              className={`h-[1px] w-8 ${
+                currentStep >= step ? "bg-white/80" : "bg-white/20"
+              }`}
+            />
+          )}
+          <View
+            className={`w-8 h-8 rounded-full items-center justify-center border ${
+              currentStep >= step
+                ? "bg-white border-white"
+                : "bg-transparent border-white/30"
+            }`}
+          >
+            <Text
+              className={`font-bold text-xs ${
+                currentStep >= step ? "text-black" : "text-white/60"
+              }`}
             >
-              <View className="flex-row justify-between items-center mb-2">
-                <Text className="font-semibold text-primary">
-                  Course {index + 1}
-                </Text>
-                {index > 0 && (
-                  <TouchableOpacity
-                    onPress={() => deleteCourse(index)}
-                    className="p-1"
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#5b2333" />
-                  </TouchableOpacity>
-                )}
-              </View>
+              {step}
+            </Text>
+          </View>
+        </React.Fragment>
+      ))}
+    </View>
+  );
 
-              <View className="flex flex-col gap-3 py-2">
-                <View className="">
-                  <Text className="text-gray-700 font-medium mb-2">
-                    Course Code
-                  </Text>
-                  <TextInput
-                    className="w-full h-12 border border-gray-300 uppercase rounded-md px-4 text-gray-700 "
-                    placeholder="Course Code (e.g., CSC101) *"
-                    value={course.code}
-                    onChangeText={(value) => updateCourse(index, "code", value)}
-                  />
-                </View>
+  return (
+    <View className="flex-1 bg-black">
+      <StatusBar style="light" />
+      
+      {/* Top Gradient Header Area */}
+      <LinearGradient
+        colors={["black", "black"]}
+        style={{
+          paddingTop: 60,
+          paddingBottom: 30,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Heading2 color="white" className="mb-1 text-center">
+          Lecturer Profile
+        </Heading2>
+        <Subtitle color="#cccccc" className="text-center">
+           Step {currentStep} of {totalSteps}
+        </Subtitle>
+        {renderStepIndicator()}
+      </LinearGradient>
 
-                <View className="">
-                  <Text className="text-gray-700 font-medium mb-2">
-                    Course Title
-                  </Text>
-                  <TextInput
-                    className="w-full h-12 border border-gray-300 rounded-md px-4 text-gray-700 "
-                    placeholder="Course Title *"
-                    value={course.title}
-                    onChangeText={(value) =>
-                      updateCourse(index, "title", value)
-                    }
-                  />
-                </View>
-                <View className="">
-                  <Text className="text-gray-700 font-medium mb-2">
-                    Course Level
-                  </Text>
-                  <View className="flex-row justify-between">
-                    {["100", "200", "300", "400", "500"].map((lvl) => (
-                      <TouchableOpacity
-                        key={lvl}
-                        className={`px-5 py-3 rounded-md border ${
-                          course.level === lvl
-                            ? `bg-primary border-primary`
-                            : "bg-gray-100 border-gray-300"
-                        }`}
-                        onPress={() => updateCourse(index, "level", lvl)}
-                      >
-                        <Text
-                          className={
-                            course.level === lvl
-                              ? "text-white font-semibold"
-                              : "text-gray-700"
-                          }
+      {/* Main Content Sheet */}
+      <View className="flex-1 bg-[#f5f5f5] rounded-t-3xl overflow-hidden mt-2">
+        <LinearGradient
+           colors={["#3b5fe2", "#1e3fa0"]}
+           style={{ flex: 1 }}
+        >
+            <View className="flex-1 py-6">
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    className="flex-1"
+                >
+                    <ScrollView 
+                        className="flex-1 px-6 pt-0"
+                        contentContainerStyle={{ paddingBottom: 100 }}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {/* Step 1: Personal Info */}
+                        {currentStep === 1 && (
+                            <View className="bg-white rounded-3xl p-6 shadow-sm mb-6">
+                                <Heading4 className="mb-4 text-gray-800">Personal Info</Heading4>
+                                
+                                <View className="mb-4">
+                                    <Caption className="mb-1 text-gray-500 uppercase">Full Name *</Caption>
+                                    <TextInput
+                                        placeholder="Enter your full name"
+                                        value={name}
+                                        onChangeText={setName}
+                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-gray-800"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <View className="mb-4">
+                                    <Caption className="mb-1 text-gray-500 uppercase">Lecturer ID (Optional)</Caption>
+                                    <TextInput
+                                        placeholder="Lecturer ID"
+                                        value={lecturerId}
+                                        onChangeText={setLecturerId}
+                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-gray-800"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <View className="mb-4">
+                                    <Caption className="mb-1 text-gray-500 uppercase">Phone Number *</Caption>
+                                    <TextInput
+                                        placeholder="Enter your phone number"
+                                        value={phoneNumber}
+                                        onChangeText={setPhoneNumber}
+                                        keyboardType="phone-pad"
+                                        maxLength={11}
+                                        className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-gray-800"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+                                
+                                <View>
+                                    <Caption className="mb-1 text-gray-500 uppercase">Additional Contact</Caption>
+                                    <TextInput
+                                        placeholder="Enter any additional contact information"
+                                        value={contactInfo}
+                                        onChangeText={setContactInfo}
+                                        multiline
+                                        numberOfLines={7}
+                                        className="w-full h-24 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
+                                        placeholderTextColor="#9ca3af"
+                                        style={{textAlignVertical: 'top'}}
+                                    />
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Step 2: Academic Info */}
+                        {currentStep === 2 && (
+                            <View>
+                                {/* Department Section */}
+                                <View className="bg-white rounded-3xl p-6 shadow-sm mb-6">
+                                    <Heading4 className="mb-4 text-gray-800">Department Info</Heading4>
+                                    <View>
+                                        <Caption className="mb-2 text-gray-500 uppercase">Department *</Caption>
+                                        <TouchableOpacity
+                                            onPress={() => setDeptModalVisible(true)}
+                                            className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 flex-row items-center justify-between"
+                                        >
+                                            <Body className={department ? "text-gray-800" : "text-gray-400"}>
+                                                {department || "Select Department"}
+                                            </Body>
+                                            <Ionicons name="chevron-down" size={20} color="#9ca3af" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {/* Courses Section */}
+                                <View className="bg-white rounded-3xl p-6 shadow-sm mb-6">
+                                    <Heading4 className="mb-4 text-gray-800">Courses you teach *</Heading4>
+
+                                    {courses.map((course, index) => (
+                                        <View key={index} className="mb-6 p-4 border border-gray-100 rounded-2xl bg-gray-50">
+                                            <View className="flex-row justify-between items-center mb-3">
+                                                <Subtitle className="font-semibold text-blue-600">Course {index + 1}</Subtitle>
+                                                {index > 0 && (
+                                                    <TouchableOpacity onPress={() => deleteCourse(index)}>
+                                                        <Ionicons name="trash-outline" size={20} color="#5b2333" />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+
+                                            {/* Code */}
+                                            <View className="mb-3">
+                                                <Caption className="mb-1 text-gray-500 uppercase">Course Code</Caption>
+                                                <TextInput
+                                                    placeholder="e.g. CSC101"
+                                                    value={course.code}
+                                                    onChangeText={(txt) => updateCourse(index, "code", txt)}
+                                                    className="w-full h-10 bg-white border border-gray-200 rounded-lg px-3 text-gray-800 uppercase"
+                                                    placeholderTextColor="#9ca3af"
+                                                />
+                                            </View>
+
+                                            {/* Title */}
+                                            <View className="mb-3">
+                                                <Caption className="mb-1 text-gray-500 uppercase">Course Title</Caption>
+                                                <TextInput
+                                                    placeholder="Course Title"
+                                                    value={course.title}
+                                                    onChangeText={(txt) => updateCourse(index, "title", txt)}
+                                                    className="w-full h-10 bg-white border border-gray-200 rounded-lg px-3 text-gray-800"
+                                                    placeholderTextColor="#9ca3af"
+                                                />
+                                            </View>
+
+                                            {/* Level */}
+                                            <View>
+                                                <Caption className="mb-1 text-gray-500 uppercase">Course Level</Caption>
+                                                <View className="flex-row flex-wrap gap-2">
+                                                    {["100", "200", "300", "400", "500"].map((lvl) => (
+                                                        <TouchableOpacity
+                                                            key={lvl}
+                                                            onPress={() => updateCourse(index, "level", lvl)}
+                                                            className={`px-3 py-1.5 rounded-md border ${
+                                                                course.level === lvl 
+                                                                ? "bg-blue-600 border-blue-600" 
+                                                                : "bg-white border-gray-200"
+                                                            }`}
+                                                        >
+                                                            <Caption color={course.level === lvl ? "white" : "#4b5563"}>
+                                                                {lvl}
+                                                            </Caption>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
+
+                                    <TouchableOpacity 
+                                        onPress={addCourse}
+                                        className="py-3 border-2 border-dashed border-blue-200 rounded-xl items-center bg-blue-50"
+                                    >
+                                        <Body className="text-blue-600 font-semibold">+ Add Another Course</Body>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+                    </ScrollView>
+
+                    {/* Bottom Buttons */}
+                    <View className="px-6 pb-6 flex-row justify-between gap-4">
+                        {currentStep > 1 && (
+                             <TouchableOpacity
+                                onPress={prevStep}
+                                className="flex-1 bg-white/20 py-4 rounded-2xl items-center border border-white/10"
+                            >
+                                <Heading4 color="white">Back</Heading4>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                            onPress={currentStep === totalSteps ? handleSubmit : nextStep}
+                            className={`flex-1 py-4 rounded-2xl items-center shadow-lg ${
+                                currentStep === 1 ? "w-full" : ""
+                            } bg-white`}
                         >
-                          {lvl}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </View>
+                            {loading ? (
+                                <ActivityIndicator color="#3b5fe2" />
+                            ) : (
+                                <Heading4 className="text-[#3b5fe2]">
+                                    {currentStep === totalSteps ? "Save and Continue" : "Next"}
+                                </Heading4>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
             </View>
-          ))}
-
-          <TouchableOpacity
-            className="mb-4 py-2 w-full flex flex-row justify-center"
-            onPress={addCourse}
-          >
-            <Text className="bg-primary text-white rounded-md py-4 px-3 font-bold text-center">
-              + Add Another Course
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-        {loading ? (
-          <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-        ) : (
-          <TouchableOpacity
-            onPress={handleSubmit}
-            className="w-full bg-[${PRIMARY_COLOR}] py-1 rounded-md items-center"
-          >
-            <Text className="text-primary text-lg font-semibold">
-              Save and Continue
-            </Text>
-          </TouchableOpacity>
-        )}
+        </LinearGradient>
       </View>
-    </SafeAreaView>
+
+      {/* Department Modal */}
+      <Modal
+        visible={isDeptModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setDeptModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl p-6 h-[70%]">
+                <View className="flex-row justify-between items-center mb-6">
+                    <Heading3>Select Department</Heading3>
+                    <TouchableOpacity onPress={() => setDeptModalVisible(false)} className="p-2 bg-gray-100 rounded-full">
+                        <Ionicons name="close" size={20} />
+                    </TouchableOpacity>
+                </View>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    {DEPARTMENTS.map((dept) => (
+                        <TouchableOpacity
+                            key={dept}
+                            onPress={() => {
+                                setDepartment(dept);
+                                setDeptModalVisible(false);
+                            }}
+                            className={`p-4 border-b border-gray-100 flex-row justify-between items-center ${
+                                department === dept ? "bg-blue-50" : ""
+                            }`}
+                        >
+                            <Body className={department === dept ? "text-blue-600 font-semibold" : "text-gray-700"}>
+                                {dept}
+                            </Body>
+                            {department === dept && <Ionicons name="checkmark" color="#3b5fe2" size={20} />}
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        </View>
+      </Modal>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={closeAlert}
+      />
+
+    </View>
   );
 }

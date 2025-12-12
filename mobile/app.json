@@ -6,12 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "owner": "emmaexcel6",
     "splash": {
-      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#3983cd"
     },
     "ios": {
       "supportsTablet": true,
@@ -36,11 +35,6 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
-        }
-      },
       "package": "com.emmaexcel6.mobile"
     },
     "web": {
@@ -63,6 +57,11 @@
         "projectId": "3e6eb01d-2ae1-4c72-8def-066187bb0bfa"
       }
     },
-   
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3e6eb01d-2ae1-4c72-8def-066187bb0bfa"
+    }
   }
 }

@@ -12,6 +12,7 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { getDistance } from "geolib";
 import { rtdb, auth, db } from "../firebase";
@@ -43,6 +44,72 @@ import {
   Subtitle,
   Typography,
 } from "../component/ui/Typography";
+import { CustomAlert } from "../component/ui/CustomAlert";
+
+const ScanningIndicator = () => {
+  const fadeAnim = React.useRef(new Animated.Value(0.4)).current;
+  const translateX = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 0.4,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ),
+      Animated.loop(
+         Animated.sequence([
+            Animated.timing(translateX, {
+               toValue: 100,
+               duration: 1000,
+               useNativeDriver: true,
+            }),
+            Animated.timing(translateX, {
+               toValue: 0,
+               duration: 1000,
+               useNativeDriver: true,
+            })
+         ])
+      )
+    ]).start();
+  }, []);
+
+  return (
+    <View className="mt-4 w-full">
+      <View className="bg-gray-100 rounded-full h-1.5 w-full overflow-hidden">
+        <Animated.View
+          className="bg-primary h-full w-1/3 rounded-full"
+          style={{ 
+            opacity: fadeAnim,
+            transform: [{
+               translateX: translateX.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: [0, 200] // simple movement
+               })
+            }] 
+          }}
+        />
+      </View>
+      <Typography
+        variant="small"
+        color="white"
+        className="!text-center mt-2"
+      >
+        Scanning for nearby students...
+      </Typography>
+    </View>
+  );
+};
+
 export default function Attendance() {
   const { location, radius: locationRadius, setRadius } = useLocation();
   const navigation = useNavigation();
@@ -86,14 +153,49 @@ export default function Attendance() {
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [sessionJustStarted, setSessionJustStarted] = useState(false);
 
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: any[];
+    type?: "success" | "error" | "info" | "warning";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+    type: "info",
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    buttons: any[] = [{ text: "OK", style: "default" }],
+    type: "success" | "error" | "info" | "warning" = "info"
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      buttons,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
+
   useEffect(() => {
     if (isAttendanceActive && !sessionJustStarted) {
-      Alert.alert(
+      showAlert(
         "Active Session Restored",
         `You have an ongoing attendance session for ${
           selectedCourse?.code || "a course"
         } that was restored.`,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
+        "info"
       );
     }
   }, []);
@@ -226,7 +328,7 @@ export default function Attendance() {
   ) => {
     try {
       if (!selectedCourse) {
-        Alert.alert("Error", "No course selected for the quiz");
+        showAlert("Error", "No course selected for the quiz", undefined, "error");
         return;
       }
 
@@ -234,7 +336,7 @@ export default function Attendance() {
       await createQuizForAttendance(question, answer, points, selectedCourse);
       setShowQuizModal(false);
 
-      Alert.alert(
+      showAlert(
         "Quiz Created",
         `Attendance quiz has been created for ${selectedCourse.code}. Students can now mark their attendance by answering the quiz.`,
         [
@@ -242,20 +344,26 @@ export default function Attendance() {
             text: "OK",
             onPress: () => {
               // Suggest checking the quiz page
-              Alert.alert(
-                "Tip",
-                "Students should check their Quiz page to see and answer the attendance quiz.",
-                [{ text: "Got it" }]
-              );
+              setTimeout(() => {
+                showAlert(
+                  "Tip",
+                  "Students should check their Quiz page to see and answer the attendance quiz.",
+                  [{ text: "Got it" }],
+                  "info"
+                );
+              }, 300);
             },
           },
-        ]
+        ],
+        "success"
       );
     } catch (error: any) {
       console.error("Error creating attendance quiz:", error);
-      Alert.alert(
+      showAlert(
         "Error",
-        "Failed to create attendance quiz: " + error.message
+        "Failed to create attendance quiz: " + error.message,
+        undefined,
+        "error"
       );
     } finally {
       setLoading(false);
@@ -458,15 +566,17 @@ export default function Attendance() {
     const radius = parseInt(tempRadius);
 
     if (isNaN(duration) || duration <= 0) {
-      Alert.alert(
+      showAlert(
         "Invalid Duration",
-        "Please enter a valid duration in minutes."
+        "Please enter a valid duration in minutes.",
+        undefined,
+        "warning"
       );
       return;
     }
 
     if (isNaN(radius) || radius <= 0) {
-      Alert.alert("Invalid Radius", "Please enter a valid radius in meters.");
+      showAlert("Invalid Radius", "Please enter a valid radius in meters.", undefined, "warning");
       return;
     }
 
@@ -478,17 +588,21 @@ export default function Attendance() {
   };
   const handleStartAttendance = () => {
     if (isAttendanceActive) {
-      Alert.alert(
+      showAlert(
         "Attendance Active",
-        "Attendance session is already running."
+        "Attendance session is already running.",
+        undefined,
+        "warning"
       );
       return;
     }
 
     if (!selectedCourse) {
-      Alert.alert(
+      showAlert(
         "No Course Selected",
-        "Please select a course for attendance"
+        "Please select a course for attendance",
+        undefined,
+        "warning"
       );
       return;
     }
@@ -500,38 +614,45 @@ export default function Attendance() {
     if (attendanceMode === AttendanceMode.QUIZ_BASED) {
       setShowQuizModal(true);
     } else {
-      Alert.alert(
+      showAlert(
         "Attendance Started",
-        `Attendance is now active for ${selectedCourse.code}: ${selectedCourse.title} in ${attendanceMode} mode for ${attendanceDuration} minutes.`
+        `Attendance is now active for ${selectedCourse.code}: ${selectedCourse.title} in ${attendanceMode} mode for ${attendanceDuration} minutes.`,
+        undefined,
+        "success"
       );
     }
   };
 
   const handleStopAttendance = () => {
     if (!isAttendanceActive) {
-      Alert.alert(
+      showAlert(
         "No Active Session",
-        "There is no active attendance session to stop."
+        "There is no active attendance session to stop.",
+        undefined,
+        "info"
       );
       return;
     }
 
     stopAttendance();
-    Alert.alert(
+    showAlert(
       "Attendance Stopped",
-      "The attendance session has been stopped."
+      "The attendance session has been stopped.",
+      undefined,
+      "success"
     );
   };
 
   const handleSaveAttendance = async () => {
     if (isAttendanceActive) {
-      Alert.alert(
+      showAlert(
         "Attendance Still Active",
         "Do you want to stop the current session and save the attendance?",
         [
           { text: "Cancel", style: "cancel" },
           {
             text: "Stop and Save",
+            style: "destructive",
             onPress: async () => {
               stopAttendance();
               try {
@@ -541,23 +662,38 @@ export default function Attendance() {
               }
             },
           },
-        ]
+        ],
+        "warning"
       );
       return;
     }
 
     if (studentsInAttendance.length === 0) {
-      Alert.alert(
+      showAlert(
         "No Attendance Data",
-        "There are no students in the attendance list to save."
+        "There are no students in the attendance list to save.",
+        undefined,
+        "info"
       );
       return;
     }
 
     try {
       await saveAttendance();
+      showAlert(
+        "Success",
+        "Attendance has been saved successfully.",
+        undefined,
+        "success"
+      );
     } catch (error) {
       console.error("Error saving attendance:", error);
+      showAlert(
+        "Error",
+        "Failed to save attendance. Please try again.",
+        undefined,
+        "error"
+      );
     }
   };
 
@@ -586,7 +722,7 @@ export default function Attendance() {
         }
       } catch (error) {
         console.error("Error fetching courses:", error);
-        Alert.alert("Error", "Failed to load your courses");
+        showAlert("Error", "Failed to load your courses", undefined, "error");
       } finally {
         setLoadingCourses(false);
       }
@@ -1019,20 +1155,7 @@ export default function Attendance() {
                       "Students will appear here as they are detected or complete quizzes."}
                   </Typography>
 
-                  {isAttendanceActive && (
-                    <View className="mt-4 w-full">
-                      <View className="bg-gray-100 rounded-full h-1.5 w-full overflow-hidden">
-                        <View className="bg-primary h-full w-1/3 animate-pulse" />
-                      </View>
-                      <Typography
-                        variant="small"
-                        color="white"
-                        className="!text-center mt-2"
-                      >
-                        Scanning for nearby students...
-                      </Typography>
-                    </View>
-                  )}
+                  {isAttendanceActive && <ScanningIndicator />}
                 </View>
               </View>
             }
@@ -1069,9 +1192,11 @@ export default function Attendance() {
           }
           onClose={() => {
             setShowQuizModal(false);
-            Alert.alert(
+            showAlert(
               "Attendance Active",
-              "Attendance session is active, but no quiz has been created. You can create a quiz later."
+              "Attendance session is active, but no quiz has been created. You can create a quiz later.",
+              undefined,
+              "warning"
             );
           }}
           onSubmit={handleCreateQuiz}
@@ -1233,6 +1358,15 @@ export default function Attendance() {
             </View>
           </View>
         </Modal>
+
+        <CustomAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          buttons={alertConfig.buttons}
+          onClose={hideAlert}
+          type={alertConfig.type}
+        />
       </LinearGradient>
     </View>
   );

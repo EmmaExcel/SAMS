@@ -15,6 +15,7 @@ import {
   Subtitle,
   Typography,
 } from "./ui/Typography";
+import { CustomAlert } from "./ui/CustomAlert";
 
 interface CreateQuizModalProps {
   visible: boolean;
@@ -36,10 +37,42 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
   const [answer, setAnswer] = useState("");
   const [points, setPoints] = useState("1");
   const [loading, setLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons?: any[];
+    type?: "success" | "error" | "info" | "warning";
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+    type: "info",
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    buttons: any[] = [{ text: "OK", style: "default" }],
+    type: "success" | "error" | "info" | "warning" = "info"
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      buttons,
+      type,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   const handleSubmit = async () => {
     if (!question || !answer) {
-      alert("Please enter both question and answer");
+      showAlert("Missing Information", "Please enter both question and answer", undefined, "warning");
       return;
     }
 
@@ -51,7 +84,7 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
       setPoints("1");
     } catch (error) {
       console.error("Error creating quiz:", error);
-      alert("Failed to create quiz. Please try again.");
+      showAlert("Error", "Failed to create quiz. Please try again.", undefined, "error");
     } finally {
       setLoading(false);
     }
@@ -195,6 +228,14 @@ const CreateQuizModal: React.FC<CreateQuizModalProps> = ({
           </View>
         </View>
       </View>
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+        type={alertConfig.type}
+      />
     </Modal>
   );
 };

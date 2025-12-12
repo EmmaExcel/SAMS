@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useState, useCallback, useEffect } from 'react';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import RegistrationScreen from "./pages/auth";
@@ -24,25 +24,45 @@ import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider } from "./context/themeContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { NetworkProvider } from "./context/NetworkProvider";
+import CustomSplashScreen from "./component/SplashScreen";
 
+// Add this right after imports
 SplashScreen.preventAutoHideAsync();
+
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [fontsLoaded] = useFonts({
     "ClashDisplay-Regular": require("./assets/fonts/clashDisplay/ClashDisplay-Regular.otf"),
     "ClashDisplay-Medium": require("./assets/fonts/clashDisplay/ClashDisplay-Medium.otf"),
     "ClashDisplay-SemiBold": require("./assets/fonts/clashDisplay/ClashDisplay-Semibold.otf"),
     "ClashDisplay-Bold": require("./assets/fonts/clashDisplay/ClashDisplay-Bold.otf"),
-    // Add other weights as needed
   });
+
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
-      // Hide the splash screen once fonts are loaded
+      // Hide the default splash screen immediately
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
 
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  // Hide default splash as soon as fonts are loaded
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
-    return null; // Still loading fonts
+    return null;
+  }
+
+  // Show your custom splash screen
+  if (showSplash) {
+    return <CustomSplashScreen onAnimationFinish={handleSplashFinish} />;
   }
 
   return (
@@ -55,9 +75,6 @@ export default function App() {
                 <AttendanceProvider>
                   <QuizProvider>
                     <AppNavigator />
-                    {/* Global Quiz Popup that can appear on any screen */}
-                    {/* <QuizPopup /> */}
-                    {/* <QuizPopup /> */}
                   </QuizProvider>
                 </AttendanceProvider>
               </LocationProvider>

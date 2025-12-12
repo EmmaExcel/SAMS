@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useState } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
 import { theme as defaultTheme } from "../theme";
 
 type ThemeContextType = {
@@ -13,7 +13,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  // You can implement a dark theme version in the future
   const theme = defaultTheme;
 
   const toggleDarkMode = () => {

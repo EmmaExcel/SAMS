@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  StyleSheet,
   View,
   Text,
   Dimensions,
@@ -217,8 +216,8 @@ export default function MapScreen() {
 
   if (!location) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Loading map...</Text>
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <Text className="text-base text-center mt-5">Loading map...</Text>
       </SafeAreaView>
     );
   }
@@ -249,25 +248,28 @@ export default function MapScreen() {
   const handleBack = () => {
     navigation.goBack();
   };
+  
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text onPress={handleBack} style={styles.headerText}>
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <View className="p-4 flex-row justify-between items-center">
+        <Text onPress={handleBack} className="text-xl font-bold">
           Attendance Map
         </Text>
         <TouchableOpacity
-          style={styles.radiusButton}
+          className="bg-green-500 px-3 py-2 rounded-full"
           onPress={() => setShowRadiusControls(!showRadiusControls)}
         >
-          <Text style={styles.radiusButtonText}>Radius: {radius}m</Text>
+          <Text className="text-white font-bold">Radius: {radius}m</Text>
         </TouchableOpacity>
       </View>
 
       {showRadiusControls && (
-        <View style={styles.radiusControls}>
-          <Text style={styles.radiusLabel}>Adjust Attendance Radius</Text>
+        <View className="bg-white p-4 mx-4 mb-4 rounded-lg shadow-sm">
+          <Text className="text-base font-bold mb-2 text-center">
+            Adjust Attendance Radius
+          </Text>
           <Slider
-            style={styles.slider}
+            style={{ width: "100%", height: 40 }}
             minimumValue={0}
             maximumValue={RADIUS_OPTIONS.length - 1}
             step={1}
@@ -276,21 +278,19 @@ export default function MapScreen() {
               setRadius(RADIUS_OPTIONS[Math.round(value)])
             }
           />
-          <View style={styles.radiusValues}>
+          <View className="flex-row justify-between mt-2">
             {RADIUS_OPTIONS.map((value, index) => (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.radiusValueButton,
-                  radius === value && styles.selectedRadiusValue,
-                ]}
+                className={`px-2 py-1 rounded-xl ${
+                  radius === value ? "bg-green-500" : ""
+                }`}
                 onPress={() => setRadius(value)}
               >
                 <Text
-                  style={[
-                    styles.radiusValueText,
-                    radius === value && styles.selectedRadiusValueText,
-                  ]}
+                  className={`text-xs ${
+                    radius === value ? "text-white font-bold" : "text-black"
+                  }`}
                 >
                   {value}m
                 </Text>
@@ -302,7 +302,7 @@ export default function MapScreen() {
 
       <MapView
         ref={mapRef}
-        style={styles.map}
+        style={{ width: width, height: height * 0.75 }}
         initialRegion={mapRegion}
         onPanDrag={() => setUserInteracting(true)}
         onRegionChangeComplete={() => {
@@ -314,8 +314,8 @@ export default function MapScreen() {
         {studentMarkers}
       </MapView>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
+      <View className="p-4 items-center">
+        <Text className="text-base text-gray-600">
           {studentsInRadius.length} of {students.length} students within{" "}
           {radius}m radius
         </Text>
@@ -323,89 +323,3 @@ export default function MapScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  loadingText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 20,
-  },
-  map: {
-    width: width,
-    height: height * 0.75,
-  },
-  radiusButton: {
-    backgroundColor: "#4CAF50",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  radiusButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  radiusControls: {
-    backgroundColor: "white",
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  radiusLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  radiusValues: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  radiusValueButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  selectedRadiusValue: {
-    backgroundColor: "#4CAF50",
-  },
-  radiusValueText: {
-    fontSize: 12,
-  },
-  selectedRadiusValueText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  footer: {
-    padding: 16,
-    alignItems: "center",
-  },
-  footerText: {
-    fontSize: 16,
-    color: "#666",
-  },
-});

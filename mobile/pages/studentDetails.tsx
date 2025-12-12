@@ -148,7 +148,7 @@ export default function StudentDetails() {
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
-        <ActivityIndicator size="large" color="#5b2333" />
+        <ActivityIndicator size="large" color="#fff" />
         <Text className="text-gray-500 mt-4">Loading student details...</Text>
       </View>
     );

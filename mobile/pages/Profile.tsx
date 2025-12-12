@@ -312,7 +312,7 @@ export default function Profile({ navigation }: { navigation: any }) {
       {loading && (
         <View className="absolute inset-0 bg-black/30 items-center justify-center">
           <View className="bg-white p-5 rounded-2xl items-center">
-            <ActivityIndicator size="large" color="#5b2333" />
+            <ActivityIndicator size="large" color="#fff" />
             <Text className="mt-3 text-gray-700">Loading...</Text>
           </View>
         </View>
@@ -327,8 +327,8 @@ export default function Profile({ navigation }: { navigation: any }) {
         <View className="flex-1 bg-black/50 items-center justify-center p-5">
           <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
             <View className="items-center mb-4">
-              <View className="w-16 h-16 rounded-full bg-primary/50 items-center justify-center mb-4">
-                <Ionicons name="log-out-outline" size={32} color="#fff" />
+              <View className="w-16 h-16 rounded-full bg-[#111827]/10 items-center justify-center mb-4">
+                <Ionicons name="log-out-outline" size={32} color="#111827" />
               </View>
               <Text className="text-xl font-bold text-gray-800">Logout</Text>
               <Text className="text-gray-600 text-center mt-2">
@@ -345,7 +345,7 @@ export default function Profile({ navigation }: { navigation: any }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 py-3 bg-primary rounded-xl ml-2 items-center"
+                className="flex-1 py-3 bg-[#111827] rounded-xl ml-2 items-center"
                 onPress={handleLogout}
               >
                 <Text className="text-white font-medium">Logout</Text>

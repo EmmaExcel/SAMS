@@ -132,18 +132,14 @@ export default function StudentAttendanceHistory() {
       const allRecords: any[] = [];
       const stats: { [key: string]: { total: number; attended: number } } = {};
 
+      const enrolledCourseIds = new Set(
+        Array.isArray(userData.courses) ? userData.courses : []
+      );
+
       // Process each attendance record
       attendanceSnapshot.forEach((doc) => {
         const recordData = doc.data();
         const courseId = recordData.courseId;
-
-        // Initialize stats for this course if not already done
-        if (!stats[courseId]) {
-          stats[courseId] = { total: 0, attended: 0 };
-        }
-
-        // Increment total classes for this course
-        stats[courseId].total += 1;
 
         // Check if student was present in this attendance record
         const studentPresent = recordData.students?.some(
@@ -153,6 +149,19 @@ export default function StudentAttendanceHistory() {
             (matricNumber &&
               (s.id === matricNumber || s.studentId === matricNumber))
         );
+
+        // Filter: Only include if student is enrolled in the course OR was present
+        if (!enrolledCourseIds.has(courseId) && !studentPresent) {
+          return;
+        }
+
+        // Initialize stats for this course if not already done
+        if (!stats[courseId]) {
+          stats[courseId] = { total: 0, attended: 0 };
+        }
+
+        // Increment total classes for this course
+        stats[courseId].total += 1;
 
         // Create record object with course details
         const record = {

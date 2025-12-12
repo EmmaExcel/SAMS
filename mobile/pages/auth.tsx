@@ -25,6 +25,7 @@ import {
   Body,
   Caption,
   Heading1,
+  Heading2,
   Heading3,
   Heading4,
   Subtitle,
@@ -92,8 +93,8 @@ export default function RegistrationScreen() {
             navigation.navigate(
               type === "lecturer"
                 ? "LecturerProfileSetup"
-                : "StudentProfileSetup"
-            );
+                : "StudentProfileSetup" 
+            ) ;
           },
         },
       ]);
@@ -105,13 +106,17 @@ export default function RegistrationScreen() {
   };
 
   return (
+    <View className="flex-1 relative bg-black">
+    <StatusBar style="light" />
     <LinearGradient
-      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
-      style={styles.gradientContainer}
+      colors={["black", "black"]}
+      style={{
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+        paddingTop: 60,
+      }}
     >
-      <SafeAreaView className="flex-1">
-        <StatusBar style="light" />
-        <View className="items-start px-3">
+       <View className="items-start px-4">
           <Heading1 color={theme.colors.white}>Create Account</Heading1>
           <Subtitle
             color={theme.colors.white}
@@ -120,9 +125,15 @@ export default function RegistrationScreen() {
             Sign up to experience Geo-attend
           </Subtitle>
         </View>
+    </LinearGradient>
+    <LinearGradient
+      colors={["#3b5fe2", "#057BFF", "#1e3fa0"]}
+      style={styles.gradientContainer}
+    >
+      <SafeAreaView className="flex-1">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1 justify-center px-2"
+          className=" justify-center px-2"
         >
           <View className="px-3 bg-none  rounded-xl">
             <View className="flex-row justify-start my-4 bg-black/40 rounded-xl py-2">
@@ -198,7 +209,7 @@ export default function RegistrationScreen() {
             {loading ? (
               <ActivityIndicator
                 size="large"
-                color="#5b2333"
+                color="black"
                 className="my-6"
               />
             ) : (
@@ -230,6 +241,7 @@ export default function RegistrationScreen() {
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
+    </View>
   );
 }
 
@@ -237,6 +249,8 @@ const styles = StyleSheet.create({
   gradientContainer: {
     flex: 1,
     width: "100%",
+    borderTopEndRadius: 30,
+    borderTopStartRadius: 30,
   },
   container: {
     flex: 1,

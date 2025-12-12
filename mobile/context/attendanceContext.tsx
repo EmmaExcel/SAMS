@@ -591,11 +591,9 @@ export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
       setSelectedCourse(null);
       setEnrolledStudentIds(new Set());
 
-      Alert.alert("Success", "Attendance has been saved successfully.");
       return attendanceRef.id;
     } catch (error) {
       console.error("Error saving attendance:", error);
-      Alert.alert("Error", "Failed to save attendance. Please try again.");
       throw error;
     }
   };

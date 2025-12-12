@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Google+Sans:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #171717; /* Google Dark Background */
+  --color-surface: #202124; /* Google Surface */
+  --color-primary: #8ab4f8; /* Google Blue Light */
+  --color-primary-dark: #669df6;
+  --color-secondary: #ffca28; /* Firebase Amber */
+  --color-text-main: #e8eaed;
+  --color-text-muted: #9aa0a6;
+  
+  --font-main: 'Roboto', sans-serif;
+  --font-display: 'Google Sans', 'Roboto', sans-serif;
+  
+  --radius-card: 24px;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-text-main font-main antialiased selection:bg-primary selection:text-bg;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-display font-medium tracking-tight;
+  }
+}

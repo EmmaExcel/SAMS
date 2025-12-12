@@ -272,7 +272,7 @@ export default function StudentHomeScreen() {
     {
       icon: <Ionicons name="book" size={30} color={PRIMARY_COLOR} />,
       title: ["My", "Courses"],
-      onPress: () => navigation.navigate("My Courses"),
+      onPress: () => navigation.navigate("MyCourses"),
       userType: "student",
     },
     {
