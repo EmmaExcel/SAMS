@@ -1,4 +1,4 @@
-import { FiClock, FiSettings, FiSave, FiPlay, FiStopCircle, FiCheck, FiArrowRight, FiUsers } from 'react-icons/fi';
+import { FiClock, FiPlay, FiStopCircle, FiCheck, FiArrowRight, FiUsers } from 'react-icons/fi';
 
 const SessionSection = () => {
   return (
