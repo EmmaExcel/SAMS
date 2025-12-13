@@ -1,12 +1,13 @@
-import { FiSmartphone, FiDownload, FiInfo, FiCheck } from 'react-icons/fi';
+import { FiDownload, FiInfo, FiCheck } from 'react-icons/fi';
 import { FaAndroid, FaApple } from 'react-icons/fa';
+import QRCode from "react-qr-code";
 
 const Download = () => {
   return (
     <div className="pt-32 pb-24 min-h-screen bg-bg">
       <div className="max-w-[1200px] mx-auto px-6">
         
-        {/* Header */}
+        {}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-6xl font-display font-medium text-white mb-6">
             Get SAMS for Mobile
@@ -18,7 +19,7 @@ const Download = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
-          {/* Android Card - Primary */}
+          {}
           <div className="bg-surface p-10 rounded-[32px] border border-primary/20 hover:border-primary/50 transition-all group relative overflow-hidden shadow-2xl">
              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110 duration-700">
                 <FaAndroid className="text-[180px] text-primary" />
@@ -43,18 +44,18 @@ const Download = () => {
                 </div>
 
                 <div className="mt-auto">
-                    <button className="w-full bg-primary hover:bg-primary-dark text-[#171717] font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors text-lg shadow-lg shadow-primary/25">
+                    <a href="https://expo.dev/artifacts/eas/gQAQFZ74yqpw1asXAPoCTT.apk" download className="w-full bg-primary hover:bg-primary-dark text-[#171717] font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-colors text-lg shadow-lg shadow-primary/25">
                         <FiDownload className="text-xl" /> Download APK
-                    </button>
+                    </a>
                     <div className="mt-4 flex items-center justify-center gap-2 text-xs text-text-muted bg-white/5 p-3 rounded-lg border border-white/5">
                         <FiInfo className="flex-shrink-0" />
-                        <span className="font-mono">v1.2.0 (Beta) • 45MB • arm64-v8a</span>
+                        <span className="font-mono">v1.2.0 (Beta) • 87MB • </span>
                     </div>
                 </div>
              </div>
           </div>
 
-          {/* iOS Card - Secondary */}
+          {}
           <div className="bg-surface p-10 rounded-[32px] border border-white/5 relative overflow-hidden flex flex-col">
              <div className="absolute top-0 right-0 p-8 opacity-5">
                 <FaApple className="text-[180px] text-white" />
@@ -70,26 +71,26 @@ const Download = () => {
                 </p>
                 
                 <div className="space-y-4">
-                     <button disabled className="w-full bg-white/5 text-text-muted font-medium py-4 rounded-xl flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
-                        <FiSmartphone /> Join TestFlight
-                    </button>
+                   
                     <p className="text-xs text-center text-text-muted">
-                        Expected availability: Q2 2025
+                        Expected availability: Q1 2026
                     </p>
                 </div>
              </div>
           </div>
         </div>
 
-        {/* QR Code Section */}
+        {}
         <div className="max-w-xl mx-auto text-center bg-surface p-8 rounded-3xl border border-white/5">
             <h3 className="text-white font-medium mb-4">Scan to Download</h3>
             <p className="text-sm text-text-muted mb-6">Use your phone's camera to download the app directly.</p>
-            <div className="w-48 h-48 bg-white mx-auto rounded-xl p-2 mb-4">
-                 {/* Placeholder for QR Code */}
-                 <div className="w-full h-full bg-black/10 rounded-lg flex items-center justify-center">
-                    <FiSmartphone className="text-6xl text-black/20" />
-                 </div>
+            <div className="w-48 h-48 bg-white mx-auto rounded-xl p-2 mb-4 flex items-center justify-center">
+                 <QRCode
+                    value="https://expo.dev/artifacts/eas/gQAQFZ74yqpw1asXAPoCTT.apk"
+                    size={176}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                    />
             </div>
              <p className="text-xs text-text-muted font-mono">scan.sams.app/dl</p>
         </div>

@@ -9,6 +9,7 @@
     "newArchEnabled": true,
     "owner": "emmaexcel6",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#3983cd"
     },

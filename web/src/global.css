@@ -2,11 +2,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #171717; /* Google Dark Background */
-  --color-surface: #202124; /* Google Surface */
-  --color-primary: #8ab4f8; /* Google Blue Light */
+  --color-bg: #171717; 
+  --color-surface: #202124; 
+  --color-primary: #8ab4f8; 
   --color-primary-dark: #669df6;
-  --color-secondary: #ffca28; /* Firebase Amber */
+  --color-secondary: #ffca28; 
   --color-text-main: #e8eaed;
   --color-text-muted: #9aa0a6;
   

@@ -26,7 +26,7 @@ const Hero = () => {
         </div>
 
         <div className="relative lg:h-[600px] flex items-center justify-center">
-          {/* Abstract Firebase-like Background Shapes */}
+          {}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 blur-[100px] rounded-full opacity-40" />
            <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/20 blur-[80px] rounded-full opacity-30" />
           

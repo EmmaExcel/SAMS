@@ -4,7 +4,7 @@ const solutions = [
   {
     title: 'Attendance for Lecturers',
     description: 'Streamline class roll‑calls, automate session timers and get real‑time insights.',
-    icon: <FiUserCheck className='text-4xl text-primary' />, // placeholder
+    icon: <FiUserCheck className='text-4xl text-primary' />, 
     link: '#',
   },
   {
@@ -37,7 +37,7 @@ const Solutions = () => {
   return (
     <section className="pt-32 pb-24 min-h-screen bg-bg">
       <div className="max-w-[1400px] mx-auto px-6">
-        {/* Hero */}
+        {}
         <div className="text-center mb-16">
           <h1 className="text-5xl md:text-6xl font-display font-medium text-white mb-6">
             Solutions for Smart Attendance
@@ -47,7 +47,7 @@ const Solutions = () => {
           </p>
         </div>
 
-        {/* Grid of solution cards */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {solutions.map((s, i) => (
             <a key={i} href={s.link} className="group bg-surface p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors shadow-lg hover:shadow-2xl">
